@@ -1,26 +1,24 @@
 # GameJolt API plugin for Godot Engine.
 
-This branch will be merged with master when the plugin is up-to-date with the 1.2 ver. of gamejolt api. The branch is unstable so use master please.
-
 ## About
-**The plugin has been rewritten! New features include:**
+**Features**
+* Use GameJolt API in version 1.2
+* Godot Engine plugin
 * Parameters to the api calls can be passed both as strings and numbers
-* Rewritten from ground up, thus smaller main plugin script
-* Some functions have been merged
-* URLs are now percent encoded
-
-The old plugin is still available with all of its documentation in this repository.
+* Allow to verbose mode to see direct communication
+* URLs are percent encoded
+* Use HTTPS communication with GameJolt API
+* Tested on Godot 3.0.6
 
 **Installing**
 1. Download the repository
-2. Create the "addons" folder in the root (res://) of your project
-3. Copy the "gamejolt_api_v2" to that folder
+2. Create the "addons/gamejolt" folder in the root (res://) of your project
+3. Copy files from repositiory to that folder
 4. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
 5. Yay, you've installed the plugin!
-6. Inside gamejolt plugin folder there's a file with certificates. Append them to "Project Settings/Network/SSL/Certificates" to allow comunication with API via HTTPS.
+6. To allow Godot to use HTTPS communication append gamejolt.pem file in "Project Settings/Network/SSL/Certificates".
 
 **Plugin's output**
-
 The gamejolt api outputs data as json strings. When requesting a lot of data, this string becomes quite large. The plugin could pre-parse this data in some way to give the user a nicely organized dictionary with the received data instead of just raw json string. But it doesn't. There is reasoning behind this:
 * Parsing raw json strings received from the api requires writing addotoinal code in the plugin
 * Most people will find this more preferable since different games deal with the received information in different ways and outputting raw json strings gives more freedom in manipulating that data than pre-parsing it before finally giving it to the user
