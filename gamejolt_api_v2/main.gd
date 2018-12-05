@@ -1,199 +1,204 @@
 extends HTTPRequest
 
 # GameJolt Godot plugin by Ackens https://github.com/ackens/-godot-gj-api
-# GameJolt API index page http://gamejolt.com/api/doc/game
+# GameJolt API index page https://gamejolt.com/game-api/doc
+
+const BASE_GAMEJOLT_API_URL = 'https://api.gamejolt.com/api/game/v1_2'
 
 export(String) var private_key
 export(String) var game_id
+export(bool) var verbose
+
 var username_cache
 var token_cache
 var request_type
 var busy = false
+
 const PARAMETERS = {
-	auth = ['*user_token=', '*username='],
-	fetch_user = ['*username=', '*user_id='],
+	user_auth = ['*user_token=', '*username='],
+	user_fetch = ['*username=', '*user_id='],
+	friends_fetch = ['*username=', '*user_token='],
 	sessions = ['*username=', '*user_token='],
 	trophy_fetch = ['*username=', '*user_token=', '*achieved=', '*trophy_id='],
-	trophy_add = ['*username=', '*user_token=', '*trophy_id='],
-	scores_fetch = ['*username=', '*user_token=', '*limit=', '*table_id='],
+	trophy_add_remove = ['*username=', '*user_token=', '*trophy_id='],
+	scores_fetch = ['*username=', '*user_token=', '*limit=', '*table_id=', '*better_than=', '*worse_than='],
 	scores_add = ['*score=', '*sort=', '*username=', '*user_token=', '*guest=', '*table_id='],
-	fetch_tables = [],
-	fetch_data = ['*key=', '*username=', '*user_token='],
-	set_data = ['*key=', '*data=', '*username=', '*user_token='],
-	update_data = ['*key=', '*operation=', '*value=', '*username=', '*user_token='],
-	remove_data = ['*key='],
-	get_data_keys = ['*username=', '*user_token=']
+	scores_fetch_rank = ['*sort=', '*table_id='],
+	tables_fetch = [],
+	data_fetch = ['*key=', '*username=', '*user_token='],
+	data_set = ['*key=', '*data=', '*username=', '*user_token='],
+	data_update = ['*key=', '*operation=', '*value=', '*username=', '*user_token='],
+	data_remove = ['*key='],
+	data_keys_get = ['*username=', '*user_token=', '*pattern='],
+	time_fetch = []
 }
 const BASE_URLS = { 
-	auth = 'http://gamejolt.com/api/game/v1/users/auth/',
-	fetch_user = 'http://gamejolt.com/api/game/v1/users/',
-	session_open = 'http://gamejolt.com/api/game/v1/sessions/open/',
-	session_ping = 'http://gamejolt.com/api/game/v1/sessions/ping/',
-	session_close = 'http://gamejolt.com/api/game/v1/sessions/close/',
-	trophy = 'http://gamejolt.com/api/game/v1/trophies/',
-	trophy_add = 'http://gamejolt.com/api/game/v1/trophies/add-achieved/',
-	scores_fetch = 'http://gamejolt.com/api/game/v1/scores/',
-	scores_add = 'http://gamejolt.com/api/game/v1/scores/add/',
-	fetch_tables = 'http://gamejolt.com/api/game/v1/scores/tables/',
-	fetch_data = 'http://gamejolt.com/api/game/v1/data-store/',
-	set_data = 'http://gamejolt.com/api/game/v1/data-store/set/',
-	update_data = 'http://gamejolt.com/api/game/v1/data-store/update/',
-	remove_data = 'http://gamejolt.com/api/game/v1/data-store/remove/',
-	get_data_keys = 'http://gamejolt.com/api/game/v1/data-store/get-keys/'
+	user_auth = '/users/auth/',
+	user_fetch = '/users/',
+	friends = '/friends/',
+	session_open = '/sessions/open/',
+	session_ping = '/sessions/ping/',
+	session_close = '/sessions/close/',
+	session_check = '/sessions/check/',
+	trophy_fetch = '/trophies/',
+	trophy_add = '/trophies/add-achieved/',
+	trophy_remove = '/trophies/remove-achieved/',
+	scores_fetch = '/scores/',
+	scores_add = '/scores/add/',
+	scores_fetch_rank = '/scores/get_rank/',
+	tables_fetch = '/scores/tables/',
+	data_fetch = '/data-store/',
+	data_set = '/data-store/set/',
+	data_update = '/data-store/update/',
+	data_remove = '/data-store/remove/',
+	data_keys_get = '/data-store/get-keys/',
+	time_fetch = '/time/'
 }
+
 signal api_authenticated(success)
 signal api_user_fetched(data)
+signal api_friends_fetched(data)
 signal api_session_opened(success)
 signal api_session_pinged(success)
 signal api_session_closed(success)
+signal api_session_checked(data)
 signal api_trophy_fetched(data)
 signal api_trophy_set_achieved(success)
+signal api_trophy_removed_achieved(success)
 signal api_scores_fetched(data)
 signal api_scores_added(success)
+signal api_score_rank_fetched(data)
 signal api_tables_fetched(data)
 signal api_data_fetched(data)
 signal api_data_set(success)
 signal api_data_updated(new_data)
 signal api_data_removed(success)
 signal api_data_got_keys(data)
+signal api_time_fetched(data)
+
+signal error(error)
 
 func _ready():
 	connect("request_completed", self, '_on_HTTPRequest_request_completed')
 	pass
 	
-func auth_user(token, username):
-	if busy: return
+func gj_api(type, parameters):
+	if busy:
+		emit_signal('error', 'Client is busy')
+		return
 	busy = true
-	var url = compose_url('auth/auth/authenticated', [token, username])
+	var url = compose_url(type, parameters)
+	request(url)
+	pass
+	
+func auth_user(token, username):
+	gj_api('user_auth/user_auth/authenticated', [token, username])
 	username_cache = username
 	token_cache = token
-	request(url)
 	pass
 	
 func fetch_user(username='', id=0):
-	if busy: return
-	busy = true
-	var url = compose_url('fetch_user/fetch_user/user_fetched', [username, id])
-	print([username, id])
-	request(url)
+	gj_api('user_fetch/user_fetch/user_fetched', [username, id])
+	pass
+	
+func fetch_friends():
+	gj_api('friends_fetch/friends/friends_fetched', [username_cache, token_cache])
 	pass
 	
 func open_session():
-	if busy: return
-	busy = true
-	var url = compose_url('sessions/session_open/session_opened', [username_cache, token_cache])
-	request(url)
+	gj_api('sessions/session_open/session_opened', [username_cache, token_cache])
 	pass
 	
 func ping_session():
-	if busy: return
-	busy = true
-	var url = compose_url('sessions/session_ping/session_pinged', [username_cache, token_cache])
-	request(url)
+	gj_api('sessions/session_ping/session_pinged', [username_cache, token_cache])
 	pass
 	
 func close_session():
-	if busy: return
-	busy = true
-	var url = compose_url('sessions/session_close/session_closed', [username_cache, token_cache])
-	request(url)
+	gj_api('sessions/session_close/session_closed', [username_cache, token_cache])
+	pass
+	
+func check_session():
+	gj_api('sessions/session_check/session_checked', [username_cache, token_cache])
 	pass
 	
 func fetch_trophy(achieved='', trophy_ids=0):
-	if busy: return
-	busy = true
-	var url = compose_url('trophy_fetch/trophy/trophy_fetched', [username_cache, token_cache, achieved, trophy_ids])
-	request(url)
+	gj_api('trophy_fetch/trophy/trophy_fetched', [username_cache, token_cache, achieved, trophy_ids])
 	pass
 	
 func set_trophy_achieved(trophy_id):
-	if busy: return
-	busy = true
-	var url = compose_url('trophy_add/trophy_add/trophy_set_achieved', [username_cache, token_cache, trophy_id])
-	request(url)
+	gj_api('trophy_add_remove/trophy_add/trophy_set_achieved', [username_cache, token_cache, trophy_id])
 	pass
 	
-func fetch_scores(username='', token='', limit=0, table_id=0):
-	if busy: return
-	busy = true
-	var url = compose_url('scores_fetch/scores_fetch/scores_fetched', [username, token, limit, table_id])
-	request(url)
+func remove_trophy_achieved(trophy_id):
+	gj_api('trophy_add_remove/trophy_remove/trophy_removed_achieved', [username_cache, token_cache, trophy_id])
+	pass
+	
+func fetch_scores(username='', token='', limit=0, table_id=0, better_than=0, worse_than=0):
+	gj_api('scores_fetch/scores_fetch/scores_fetched', [username, token, limit, table_id, better_than, worse_than])
 	pass
 	
 func add_score(score, sort, username='', token='', guest='', table_id=0):
-	if busy: return
-	busy = true
-	var url = compose_url('scores_add/scores_add/scores_added', [score, sort, username, token, guest, table_id])
-	request(url)
+	gj_api('scores_add/scores_add/scores_added', [score, sort, username, token, guest, table_id])
+	pass
+	
+func fetch_score_rank(sort, table_id=0):
+	gj_api('scores_fetch_rank/scores_fetch_rank/score_rank_fetched', [sort, table_id])
 	pass
 	
 func fetch_tables():
-	if busy: return
-	busy = true
-	var url = compose_url('fetch_tables/fetch_tables/tables_fetched', [])
-	request(url)
+	gj_api('tables_fetch/tables_fetch/tables_fetched', [])
 	pass
 	
 func fetch_data(key, username='', token=''):
-	if busy: return
-	busy = true
-	var url = compose_url('fetch_data/fetch_data/data_fetched', [key, username, token])
-	request(url)
+	gj_api('data_fetch/data_fetch/data_fetched', [key, username, token])
 	pass
 	
 func set_data(key, data, username='', token=''):
-	if busy: return
-	busy = true
-	var url = compose_url('set_data/set_data/data_set', [key, data, username, token])
-	request(url)
+	gj_api('data_set/data_set/data_set', [key, data, username, token])
 	pass
 	
 func update_data(key, operation, value, username='', token=''):
-	if busy: return
-	busy = true
-	var url = compose_url('update_data/update_data/data_updated', [key, operation, value, username, token])
-	request(url)
+	gj_api('data_update/data_update/data_updated', [key, operation, value, username, token])
 	pass
 	
 func remove_data(key, username='', token=''):
-	if busy: return
-	busy = true
-	var url = compose_url('remove_data/remove_data/data_removed', [key, username, token])
-	request(url)
+	gj_api('data_remove/data_remove/data_removed', [key, username, token])
 	pass
 	
-func get_data_keys(username='', token=''):
-	if busy: return
-	busy = true
-	var url = compose_url('get_data_keys/get_data_keys/data_got_keys', [username, token])
-	request(url)
+func get_data_keys(username='', token='', pattern=''):
+	gj_api('data_keys_get/data_keys_get/data_got_keys', [username, token, pattern])
 	pass
 	
-func compose_url(type, args):
+func fetch_time():
+	gj_api('time_fetch/time_fetch/time_fetched', [])
+	pass
+	
+func compose_url(type, parameters):
 	var types = type.split('/')
 	request_type = types[2]
-	var final_url = BASE_URLS[types[1]]
+	var final_url = BASE_GAMEJOLT_API_URL + BASE_URLS[types[1]]
 	var c = -1 # at this point of coding one of my earbuds died. one-eared music :(
-	var empty_counter = 0
+	var params_counter = 0
 	for i in PARAMETERS[types[0]]:
 		c += 1
-		if !str(args[c]).empty() and str(args[c]) != '0':
-			empty_counter += 1
-			if empty_counter == 1:
+		if !str(parameters[c]).empty() and str(parameters[c]) != '0':
+			params_counter += 1
+			if params_counter == 1:
 				var parameter = i.replace('*', '?')
-				final_url += parameter + str(args[c]).percent_encode()
+				final_url += parameter + str(parameters[c]).percent_encode()
 			else:
 				var parameter = i.replace('*', '&')
-				final_url += parameter + str(args[c]).percent_encode()
-	if empty_counter == 0:
-		final_url += '?format=json'
+				final_url += parameter + str(parameters[c]).percent_encode()
+	if params_counter == 0:
+		final_url += '?game_id=' + str(game_id)
 	else:
-		final_url += '&format=json'
-	final_url += '&game_id=' + str(game_id)
-	var s = final_url + private_key
-	s = s.md5_text()
-	print(final_url + '&signature=' + s)
-	return final_url + '&signature=' + s
+		final_url += '&game_id=' + str(game_id)
+	var signature = final_url + private_key
+	signature = signature.md5_text()
+	final_url += '&signature=' + signature
+	if verbose:
+		verbose(final_url)
+	return final_url
 	pass
 	
 func get_username():
@@ -205,6 +210,15 @@ func get_user_token():
 	pass
 
 func _on_HTTPRequest_request_completed( result, response_code, headers, body ):
+	if result != 0:
+		emit_signal('error', 'An error occurred processing request ' + request_type)
 	busy = false
-	emit_signal('api_' + request_type, body.get_string_from_ascii())
+	var responseBody = body.get_string_from_utf8()
+	if verbose:
+		verbose(responseBody)
+	emit_signal('api_' + request_type, responseBody)
 	pass # replace with function body
+
+func verbose(message):
+	if verbose:
+		print('[GAMEJOLT]' + message)

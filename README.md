@@ -1,5 +1,7 @@
 # GameJolt API plugin for Godot Engine.
 
+This branch will be merged with master when the plugin is up-to-date with the 1.2 ver. of gamejolt api. The branch is unstable so use master please.
+
 ## About
 **The plugin has been rewritten! New features include:**
 * Parameters to the api calls can be passed both as strings and numbers
@@ -15,6 +17,7 @@ The old plugin is still available with all of its documentation in this reposito
 3. Copy the "gamejolt_api_v2" to that folder
 4. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
 5. Yay, you've installed the plugin!
+6. Inside gamejolt plugin folder there's a file with certificates. Append them to "Project Settings/Network/SSL/Certificates" to allow comunication with API via HTTPS.
 
 **Plugin's output**
 
