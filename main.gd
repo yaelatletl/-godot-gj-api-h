@@ -15,21 +15,21 @@ var request_type
 var busy = false
 
 const PARAMETERS = {
-	user_auth = ['*user_token=', '*username='],
-	user_fetch = ['*username=', '*user_id='],
-	friends_fetch = ['*username=', '*user_token='],
-	sessions = ['*username=', '*user_token='],
-	trophy_fetch = ['*username=', '*user_token=', '*achieved=', '*trophy_id='],
-	trophy_add_remove = ['*username=', '*user_token=', '*trophy_id='],
-	scores_fetch = ['*username=', '*user_token=', '*limit=', '*table_id=', '*better_than=', '*worse_than='],
-	scores_add = ['*score=', '*sort=', '*username=', '*user_token=', '*guest=', '*table_id='],
-	scores_fetch_rank = ['*sort=', '*table_id='],
+	user_auth = ['user_token', 'username'],
+	user_fetch = ['username', 'user_id'],
+	friends_fetch = ['username', 'user_token'],
+	sessions = ['username', 'user_token'],
+	trophy_fetch = ['username', 'user_token', 'achieved', 'trophy_id'],
+	trophy_add_remove = ['username', 'user_token', 'trophy_id'],
+	scores_fetch = ['username', 'user_token', 'limit', 'table_id', 'better_than', 'worse_than'],
+	scores_add = ['score', 'sort', 'username', 'user_token', 'guest', 'table_id'],
+	scores_fetch_rank = ['sort', 'table_id'],
 	tables_fetch = [],
-	data_fetch = ['*key=', '*username=', '*user_token='],
-	data_set = ['*key=', '*data=', '*username=', '*user_token='],
-	data_update = ['*key=', '*operation=', '*value=', '*username=', '*user_token='],
-	data_remove = ['*key='],
-	data_keys_get = ['*username=', '*user_token=', '*pattern='],
+	data_fetch = ['key', 'username', 'user_token'],
+	data_set = ['key', 'data', 'username', 'user_token'],
+	data_update = ['key', 'operation', 'value', 'username', 'user_token'],
+	data_remove = ['key'],
+	data_keys_get = ['username', 'user_token', 'pattern'],
 	time_fetch = []
 }
 const BASE_URLS = { 
@@ -173,26 +173,23 @@ func fetch_time():
 	gj_api('time_fetch/time_fetch/time_fetched', [])
 	pass
 	
-func compose_url(type, parameters):
+func compose_url(type, parameter_values):
 	var types = type.split('/')
 	request_type = types[2]
+
 	var final_url = BASE_GAMEJOLT_API_URL + BASE_URLS[types[1]]
-	var c = -1 # at this point of coding one of my earbuds died. one-eared music :(
-	var params_counter = 0
-	for i in PARAMETERS[types[0]]:
-		c += 1
-		if !str(parameters[c]).empty() and str(parameters[c]) != '0':
-			params_counter += 1
-			if params_counter == 1:
-				var parameter = i.replace('*', '?')
-				final_url += parameter + str(parameters[c]).percent_encode()
-			else:
-				var parameter = i.replace('*', '&')
-				final_url += parameter + str(parameters[c]).percent_encode()
-	if params_counter == 0:
-		final_url += '?game_id=' + str(game_id)
-	else:
-		final_url += '&game_id=' + str(game_id)
+	final_url += '?game_id=' + str(game_id)
+
+	var parameters = PARAMETERS[types[0]]
+	for i in range(0, parameters.size()):
+		var parameter_value = parameter_values[i]
+		if parameter_value == null:
+			continue
+		parameter_value = str(parameter_value)
+		if parameter_value.empty():
+			continue;
+		final_url += '&' + parameters[i] + '=' + parameter_value.percent_encode()
+
 	var signature = final_url + private_key
 	signature = signature.md5_text()
 	final_url += '&signature=' + signature
