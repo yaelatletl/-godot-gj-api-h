@@ -9,6 +9,8 @@
 * URLs are percent encoded
 * Use HTTPS communication with GameJolt API
 * Tested on Godot 3.0.6
+* One common singal on end of request
+* Many point of checking response
 
 **Installing**
 1. Download the repository
@@ -18,151 +20,189 @@
 5. Yay, you've installed the plugin!
 6. To allow Godot to use HTTPS communication append gamejolt.pem file in "Project Settings/Network/SSL/Certificates".
 
-**Plugin's output**
-The gamejolt api outputs data as json strings. When requesting a lot of data, this string becomes quite large. The plugin could pre-parse this data in some way to give the user a nicely organized dictionary with the received data instead of just raw json string. But it doesn't. There is reasoning behind this:
-* Parsing raw json strings received from the api requires writing addotoinal code in the plugin
-* Most people will find this more preferable since different games deal with the received information in different ways and outputting raw json strings gives more freedom in manipulating that data than pre-parsing it before finally giving it to the user
-* Parsing json strings is very easy in Godot, so it's usually not a problem
+**How to use it**
+1. Put the plugin as a Node in your project.
+2. Call the function from the plugin. It'll initiate the request.
+3. When response is received plugin will send the signal gamejolt_request_completed
+4. You may connect to this signal or yield
+5. Get the response from the plugin - it's the parsed JSON to godot directory, which is the "response" part from GameJoltAPI.
+
 
 # Methods description
 
 ## Authentication and users
-**Before doing calls that deal with users in one way or another, you must authenticate a user to ensure that the username-token pair is valid.**
+### Authenticate user
 
-`auth_user(token, username)` - authenticates the user with the given credentials
-* token - your gamejolt token (not your password)
-* username - your gamejolt username
+`auth_user(token, username)`
 
-Signal: `api_authenticated(success)`
+	Authenticates the user with the given credentials
+	Before doing calls that deal with users in one way or another, you must authenticate a user to ensure that the username-token pair is valid.
 
-**When you've successfully authenticated the user, you can do a lot of cool things. For example, you can fetch a user's information.**
+	* token - your gamejolt token (not your password)
+	* username - your gamejolt username
 
-`fetch_user(username='', id=0):` - outputs a user's information
-* username - name of the user, whose information you'd like to fetch
-* id - id of the user, whose information you'd like to fetch
+### Fetch user's information
 
-You don't need to pass both arguments, but at least one argument must be passed! When using ids, multiple ids can be passed, like this: '1,2,3,4'
+`fetch_user(username=null, ids=null):` 
+	Fetch the user's information
 
-Signal: `api_user_fetched(data)`
+	* username - name of the user, whose information you'd like to fetch
+	* id - id of the user, whose information you'd like to fetch
+
+	You don't need to pass both arguments, but at least one argument must be passed! When using ids, multiple ids can be passed, like this: '1,2,3,4'
+
 ## Sessions
-**Sessions are used to tell gamejolt that someone's playing your game. Opening a session is easy.**
+### Open the session
 
-`open_session()` - opens a session
+`open_session()`
+	Opens the session.
 
-Piece of cake! If there's an active session, it will close it and open a new one.
+	_Uses authenticated user credentials_
+	Piece of cake! If there's an active session, it will close it and open a new one.
 
-Signal: `api_session_opened(success)`
+### Ping the session
 
-**A session is closed after 120 seconds if not pinged. You have to ping the session to prevent it from closing.**
+`ping_session()`
+	Ping the session to keep it alive.
 
-`ping_session()` - pings a session
+	_Uses authenticated user credentials_
+	A session is closed after 120 seconds if not pinged. You have to ping the session to prevent it from closing.
+	Usually a timer that pings the session every 60 seconds will do the trick.
 
-Usually a timer that pings the session every 60 seconds will do the trick.
+### Close the session
+`close_session()`
+	Closes the active session.
 
-Signal: `api_session_pinged(success)`
+	_Uses authenticated user credentials_
+	When the player quits the game, the session should be closed.
+	If the game is closed, the session will be closed automatically anyway since it's not being pinged, but it's better to close it manually with this method, just in case.
 
-**When the player quits the game, the session should be closed.**
-
-`close_session()` - closes the active session
-
-If the game is closed, the session will be closed automatically anyway since it's not being pinged, but it's better to close it manually with this method, just in case.
-
-Signal: `api_session_closed(success)`
 ## Trophies a.k.a achievements
-**Trophies are basically achievements, nothing unusual. Fetching a list of trophies, just one trophy, only achieved trophies or only the unachieved trophies is done through this supermethod.**
+### Fetch user trophies
 
-`fetch_trophy(achieved='', trophy_ids=0)` - fetches trophies
-* achieved - leave blank to extarct all trophies, "true" to extract only trophies that the user has already achieved and "false" to get only unachieved trophies
-* trophy_ids - pass a trophy id to extract the specific trophy or a set of trophy ids to get a list of trophies, like this: '1,2,3,4'
+`fetch_trophy(achieved=null, trophy_ids=null)` 
+	Fetches user trophies.
+	* achieved - leave blank to extarct all trophies, "true" to extract only trophies that the user has already achieved and "false" to get only unachieved trophies
+	* trophy_ids - pass a trophy id to extract the specific trophy or a set of trophy ids to get a list of trophies, like this: '1,2,3,4'
 
-If the second parameter is passed, the first one is ignored!
+	_Uses authenticated user credentials_
+	Trophies are basically achievements, nothing unusual. Fetching a list of trophies, just one trophy, only achieved trophies or only the unachieved trophies is done through this supermethod.
 
-Signal: `api_trophy_fetched(data)`
+	If the second parameter is passed, the first one is ignored!
 
-**To set a trophy as achieved.**
+### Achieve the trophy
+`set_trophy_achieved(trophy_id)` 
+	Sets the trophy as achieved.
+	* trophy_id - id of the trophy to set as achieved
 
-`set_trophy_achieved(trophy_id)` - sets the trophy as achieved
-* trophy_id - id of the trophy to set as achieved
+	_Uses authenticated user credentials_
+	To set a trophy as achieved.
 
-Signal: `api_trophy_set_achieved(success)`
+### Remove achieved trophy
+`remove_trophy_achieved(trophy_id)`
+	Remove the achieved trophy.
+	* trophy_id - id of the trophy to set as achieved
+
+	_Uses authenticated user credentials_
 
 ## Scores
-**Scoreboards are another important part of the api. Extracting scores for the game is straightforward.**
+### Fetch user scores
+`fetch_scores(limit=null, table_id=null, better_than=null, worse_than=null)`
+	Fetches scores for the user.
+	* limit - how many scores to return. The default value is 10, the max is 100
+	* table_id - what table to extract scores from. Leaving it blank will extract scores from the main table
+	* better_than - take scores better than
+	* worse_than - take scores worse than
 
-`fetch_scores(username='', token='', limit=0, table_id=0)` - fetches scores for the game
-* username and token - only pass these parameters if you'd like to fetch scores for the user. Leaving them blank will retrieve scores globally
-* limit - how many scores to return. The default value is 10, the max is 100
-* table_id - what table to extract scores from. Leaving it blank will extract scores from the main table
+	_Uses authenticated user credentials_
 
-Only pass the parameters you need! If you want scores globally for the game, leave username and token blank! If you want scores from the main scoreboard, leave table_id blank and so on...
+### Fetch guest scores
+`fetch_guest_scores(guest, limit=null, table_id=null, better_than=null, worse_than=null)`
+	Fetches scores for the guest.
+	* guest - the guest name
+	* limit - how many scores to return. The default value is 10, the max is 100
+	* table_id - what table to extract scores from. Leaving it blank will extract scores from the main table
+	* better_than - take scores better than
+	* worse_than - take scores worse than
 
-Signal: `api_scores_fetched(data)`
+### Fetch global scores
+`fetch_global_scores(limit=null, table_id=null, better_than=null, worse_than=null)`
+	Fetches global scores.
+	* limit - how many scores to return. The default value is 10, the max is 100
+	* table_id - what table to extract scores from. Leaving it blank will extract scores from the main table
+	* better_than - take scores better than
+	* worse_than - take scores worse than
 
-**Being able to fetch scores is nice, but firstly we need to populate scoreboards with the actual score entries!**
+### Add scores for user
+`add_score(score, sort, table_id=null)`
+	Adds a score to a table
+	* score - string assotiated with the score. For instance: "124 Jumps"
+	* sort - the actual score value. For example: 124
+	* table_id - what table to submit scores to. If left blank, the score will be submitted to the main table
 
-`add_score(score, sort, username='', token='', guest='', table_id=0)` - adds a score to a table
-* score - string assotiated with the score. For instance: "124 Jumps"
-* sort - the actual score value. For example: 124
-* username and token - only pass these parameters if you'd like to add scores for the user. If you leave them blank, the "guest" parameter must be passed
-* guest - only pass this parameter if you'd like to store a score as a guest. If you leave this blank, "username" and "token" parameters must be passed
-* table_id - what table to submit scores to. If left blank, the score will be submitted to the main table
+	_Uses authenticated user credentials_
 
-Signal: `api_scores_added(success)`
+### Add scores for guest
+`add_guest_score(score, sort, guest, table_id=null)`
+	Adds a score to a table
+	* score - string assotiated with the score. For instance: "124 Jumps"
+	* sort - the actual score value. For example: 124
+	* guest - the guest name
+	* table_id - what table to submit scores to. If left blank, the score will be submitted to the main table
 
-**If you need to know what scoreboards are there, call this method.**
+	_Uses authenticated user credentials_
 
-`fetch_tables()` - returns a list of all scoreboards
-
-Signal: `api_tables_fetched(data)`
+### List scoreboards
+`fetch_tables()` 
+	Returns a list of all scoreboards
 
 ## Data storage
-**GameJolt allows you to store data...in the *cloud*! To store some data in the cloud call this method.**
+### Set Data
+`set_data(key, data, global=true)`
+	Stores data in the cloud
+	* key - a piece of data is stored in a *key*, this is the name of the key
+	* data - what you want to store in the key
+	* global - true, then use global data; false use authenticated user specific data
 
-`set_data(key, data, username='', token='')` - stores data in the cloud
-* key - a piece of data is stored in a *key*, this is the name of the key
-* data - what you want to store in the key
-* username and token - only pass these parameters if you want to store the data for the user
+	Data can be strings, integers, floats...anything
 
-Data can be strings, integers, floats...anything
+### Fetch data
+`fetch_data(key, global=true)`
+	Fetches data from the key
+	* key - key to fetch data from
+	* global - true, then use global data; false use authenticated user specific data
 
-Signal: `api_data_set(success)`
+### Update data
+`update_data(key, operation, value, global=true)`
+	Updates data in the key
+	* key - key, whose data will be updated
+	* operation - what kind of operation to perform on the data. String can be prepended and appended to. Numbers can be divided, multiplied, added to and subtracted from. Use one of these: "append", "prepend", "divide", "multiply", "add", "subtract"
+	* value = value that will be used in the operation
+	* global - true, then use global data; false use authenticated user specific data
 
-**Fetching data from a key is easy too.**
+### Remove data
+`remove_data(key, global=true)`
+	Removes a key
+	* key - what key to remove
+	* global - true, then use global data; false use authenticated user specific data
 
-`fetch_data(key, username='', token='')` - fetches data from the key
-* key - key to fetch data from
-* username and token - only pass these parameters if you want data from the user
+### List of data keys
+`get_data_keys(pattern=null, global=true)`
+	Return a list of keys
+	* pattern - the pattern for filter data keys
+	* global - true, then use global data; false use authenticated user specific data
 
-Signal: `api_data_fetched(data)`
+## Time
+### Get server time
+`fetch_time()`
+	Get a time from the server.
 
-**Everything changes. The data in a key changes too when you update it with this method.**
+## Additional methods
 
-`update_data(key, operation, value, username='', token='')` - updates data in the key
-* key - key, whose data will be updated
-* operation - what kind of operation to perform on the data. String can be prepended and appended to. Numbers can be divided, multiplied, added to and subtracted from. Use one of these: "append", "prepend", "divide", "multiply", "add", "subtract"
-* value = value that will be used in the operation
-* username and token - only pass these parameters if you want to update the user's data. Otherwise it will be updated globally for the game
+* get_username() - returns authenticated username
+* get_user_token() - return the authenticated user's token
 
-Signal: `api_data_updated(new_data)`
+# Hints
 
-**One day, you might want to remove a key. Fortunately, that's totally possible! Just one call and the key is erased from existence!**
-
-`remove_data(key, username='', token='')` - removes a key
-* key - what key to remove
-* username and token - only pass these parameters if you want to remove the key for the user
-
-Signal: `api_data_removed(success)`
-
-**Obtaining a list of all data keys is totally possible too!**
-
-`get_data_keys(username='', token='')` - return a list of all keys
-* username and token - only pass these parameters if you want to get list of keys for the user
-
-Signal: `api_data_got_keys(data)`
-
-# Additional methods
-
-* get_username() - returns username
-* get_user_token() - return the user's token
-
-# Avatars-related functionality will be added later
+1. Plugin extend _HTTPRequest_ node. If there're some problems with hanging a game while playing - enable property _use_threads_. This allow to execute a call in thread separated to game.
+2. Remember - yield does out from current function and executes caller code (!). Action in that function (and only that function) will be resumed on the signal.
