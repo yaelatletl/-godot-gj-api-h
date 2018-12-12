@@ -77,7 +77,7 @@ func remove_trophy_achieved(trophy_id):
 		{username = username_cache, user_token = token_cache, trophy_id = trophy_id})
 	pass
 
-func fetch_scores(limit=null, table_id=null, better_than=null, worse_than=null):
+func fetch_scores(table_id=null, limit=null, better_than=null, worse_than=null):
 	_call_gj_api('/scores/',
 		{username = username_cache, user_token = token_cache, limit = limit, table_id = table_id, better_than = better_than, worse_than = worse_than})
 	pass
