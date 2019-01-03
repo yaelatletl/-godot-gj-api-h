@@ -8,7 +8,7 @@
 * Allow to verbose mode to see direct communication
 * URLs are percent encoded
 * Use HTTPS communication with GameJolt API
-* Tested on Godot 3.0.6
+* Tested on Godot 3.0.6 and Godot 3.1 alpha
 * One common singal on end of request
 * Many point of checking response
 
@@ -23,7 +23,7 @@
 **How to use it**
 1. Put the plugin as a Node in your project.
 2. Call the function from the plugin. It'll initiate the request.
-3. When response is received plugin will send the signal gamejolt_request_completed
+3. When response is received plugin will send the signal gamejolt_request_completed with the type of the request and a message
 4. You may connect to this signal or yield
 5. Get the response from the plugin - it's the parsed JSON to godot directory, which is the "response" part from GameJoltAPI.
 
@@ -32,6 +32,10 @@
 
 ## Authentication and users
 ### Authenticate user
+
+`auto_auth()`
+
+Authenticates the user who play the game. It work only with html5 games on Gamejolt
 
 `auth_user(token, username)`
 
@@ -212,5 +216,5 @@ Get a time from the server.
 
 # Hints
 
-1. Plugin extend _HTTPRequest_ node. If there're some problems with hanging a game while playing - enable property _use_threads_. This allow to execute a call in thread separated to game.
+1. Don't use thread for html5 games. HTTPrequest doesn't work.
 2. Remember - yield does out from current function and executes caller code (!). Action in that function (and only that function) will be resumed on the signal.

@@ -7,9 +7,9 @@ const BASE_GAMEJOLT_API_URL = 'https://api.gamejolt.com/api/game/v1_2'
 
 export(String) var private_key
 export(String) var game_id
-export(bool) var verbose
+export(bool) var verbose=true
 
-signal gamejolt_request_completed
+signal gamejolt_request_completed(type,message)
 
 var username_cache
 var token_cache
@@ -22,11 +22,23 @@ var responseHeaders = null
 var responseStatus = null
 var jsonParseError = null
 var gameJoltErrorMessage = null
-
+var lasttype=""
+func init(pk,gi):
+	private_key=pk
+	game_id=gi
 func _ready():
 	connect("request_completed", self, '_on_HTTPRequest_request_completed')
 	pass
-	
+func auto_auth():
+	#get username and token form url on gamejolt (only work with html5)
+	var url=str(JavaScript.eval("window.location.href"))
+	var tmp = url.split('gjapi_username=')
+	if tmp.size()>1:
+		username_cache=tmp[1].split("&")[0]
+		token_cache=tmp[1].split("gjapi_token=")[1]
+		_call_gj_api('/users/auth/', {user_token = token_cache, username = username_cache})
+	else:
+		print("not html5 game on gamejolt")
 func auth_user(username, token):
 	_call_gj_api('/users/auth/', {user_token = token, username = username})
 	username_cache = username
@@ -93,9 +105,10 @@ func fetch_global_scores(limit=null, table_id=null, better_than=null, worse_than
 	pass
 	
 func add_score(score, sort, table_id=null):
-	_call_gj_api('/scores/add/',
-		{score = score, sort = sort, username = username_cache, user_token = token_cache, table_id = table_id})
-	pass
+	if username_cache!=null:
+		_call_gj_api('/scores/add/',
+			{score = score, sort = sort, username = username_cache, user_token = token_cache, table_id = table_id})
+		pass
 	
 func add_guest_score(score, sort, guest, table_id=null):
 	_call_gj_api('/scores/add/',
@@ -107,7 +120,7 @@ func fetch_score_rank(sort, table_id=null):
 	pass
 	
 func fetch_tables():
-	_call_gj_api('/scores/tables/')
+	_call_gj_api('/scores/tables/',{})
 	pass
 	
 func fetch_data(key, global=true):
@@ -149,7 +162,7 @@ func get_data_keys(pattern=null, global=true):
 	pass
 	
 func fetch_time():
-	_call_gj_api('/time/')
+	_call_gj_api('/time/',{})
 	pass
 
 func get_username():
@@ -190,15 +203,17 @@ func _reset():
 func _call_gj_api(type, parameters):
 	if busy:
 		requestError = ERR_BUSY
-		emit_signal('gamejolt_request_completed')
+#		emit_signal('gamejolt_request_completed')
 		return
 	busy = true
 	_reset()
 	var url = _compose_url(type, parameters)
+	lasttype=type
 	requestError = request(url)
 	if requestError != OK:
-		busy = false
-		emit_signal('gamejolt_request_completed')
+		print(requestError)
+#		busy = false
+#		emit_signal('gamejolt_request_completed')
 	pass
 
 func _compose_url(urlpath, parameters={}):
@@ -225,7 +240,7 @@ func _compose_url(urlpath, parameters={}):
 func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 	busy = false
 	if result != OK:
-		emit_signal('gamejolt_request_completed')
+		emit_signal('gamejolt_request_completed',lasttype,"error")
 		return
 	responseResult = result
 	responseStatus = response_code
@@ -243,7 +258,7 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 			gameJoltErrorMessage = responseBody['message']
 	else:
 		responseBody = null
-	emit_signal('gamejolt_request_completed')
+	emit_signal('gamejolt_request_completed',lasttype,responseBody)
 	pass # replace with function body
 
 func _verbose(message):
