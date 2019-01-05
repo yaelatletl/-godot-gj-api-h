@@ -14,7 +14,7 @@ signal gamejolt_request_completed(type,message)
 var username_cache
 var token_cache
 var busy = false
-
+var queue=[]
 var requestError = null
 var responseResult = null
 var responseBody = null
@@ -22,7 +22,7 @@ var responseHeaders = null
 var responseStatus = null
 var jsonParseError = null
 var gameJoltErrorMessage = null
-var lasttype=""
+var lasttype=[]
 func init(pk,gi):
 	private_key=pk
 	game_id=gi
@@ -80,9 +80,10 @@ func fetch_trophy(achieved=null, trophy_ids=null):
 	pass
 	
 func set_trophy_achieved(trophy_id):
-	_call_gj_api('/trophies/add-achieved/',
-		{username = username_cache, user_token = token_cache, trophy_id = trophy_id})
-	pass
+	if username_cache!=null:
+		_call_gj_api('/trophies/add-achieved/',
+			{username = username_cache, user_token = token_cache, trophy_id = trophy_id})
+		pass
 	
 func remove_trophy_achieved(trophy_id):
 	_call_gj_api('/trophies/remove-achieved/',
@@ -203,12 +204,12 @@ func _reset():
 func _call_gj_api(type, parameters):
 	if busy:
 		requestError = ERR_BUSY
-#		emit_signal('gamejolt_request_completed')
+		queue.append([type,parameters])
 		return
 	busy = true
 	_reset()
 	var url = _compose_url(type, parameters)
-	lasttype=type
+	lasttype.append(type)
 	requestError = request(url)
 	if requestError != OK:
 		print(requestError)
@@ -239,6 +240,10 @@ func _compose_url(urlpath, parameters={}):
 	
 func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 	busy = false
+	var size=queue.size()
+	if size!=0:
+		_call_gj_api(queue[0][0], queue[0][1])
+		queue.pop_front()
 	if result != OK:
 		emit_signal('gamejolt_request_completed',lasttype,"error")
 		return
@@ -258,7 +263,8 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 			gameJoltErrorMessage = responseBody['message']
 	else:
 		responseBody = null
-	emit_signal('gamejolt_request_completed',lasttype,responseBody)
+	emit_signal('gamejolt_request_completed',lasttype[0],responseBody)
+	lasttype.pop_front()
 	pass # replace with function body
 
 func _verbose(message):
