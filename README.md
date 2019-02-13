@@ -8,7 +8,7 @@
 * Allow to verbose mode to see direct communication
 * URLs are percent encoded
 * Use HTTPS communication with GameJolt API
-* Tested on Godot 3.0.6
+* Tested on Godot 3.0.6 and Godot 3.1 alpha
 * One common singal on end of request
 * Many point of checking response
 
@@ -23,15 +23,45 @@
 **How to use it**
 1. Put the plugin as a Node in your project.
 2. Call the function from the plugin. It'll initiate the request.
-3. When response is received plugin will send the signal gamejolt_request_completed
-4. You may connect to this signal or yield
+3. When response is received plugin will send the signal gamejolt_request_completed with the type of the request and a results directory.
+4. You may connect to this signal or yield. Now, you can also write all your request directly, there is a queue to process all the requests.
 5. Get the response from the plugin - it's the parsed JSON to godot directory, which is the "response" part from GameJoltAPI.
 
 
 # Methods description
 
+## Emited signal and interpretation results
+### Emited signal
+`signal gamejolt_request_completed(type, requestResults)`
+
+Signal emited by plugin, when request is completed with positive or negative status.
+* type - the url path of the request.
+* requestResults - the Dictionary containing results of the request. Contains such properties
+  * requestError - the error status of request
+  * responseResult - the response result (enumerated in HttpRequest)
+  * responseHeaders - the headers of the response
+  * responseStatus - the HTTP status code of the response
+  * responseBody - the parsed JSON body of GameJolt response
+  * jsonParserError - the status of parsing response
+  * gameJoltErrorMessage - the error message from Game Jolt
+
+### Check results
+`is_ok(requestResults)`
+
+Checks all results of requestResults from signal and return true if response is fully success.
+
+### Print out error results
+`print_error(requestResults)`
+
+Print out information about reason of fail from requestResults.
+
 ## Authentication and users
 ### Authenticate user
+
+`auto_auth()`
+
+Authenticates the gamejolt user who plays the game. It works only with html5 games on Gamejolt for logged user.
+After call this function username and token will be automatically set up.
 
 `auth_user(token, username)`
 
@@ -207,10 +237,11 @@ Get a time from the server.
 
 ## Additional methods
 
-* get_username() - returns authenticated username
-* get_user_token() - return the authenticated user's token
+* get_username() - returns the current authenticated username.
+* get_user_token() - returns the current authenticated user's token.
+* clear_call_queue() - allow to clear a queue of calls. Useable in situation, that one of the call finish with failure.
 
 # Hints
 
-1. Plugin extend _HTTPRequest_ node. If there're some problems with hanging a game while playing - enable property _use_threads_. This allow to execute a call in thread separated to game.
+1. Don't use thread for html5 games. HTTPrequest doesn't work.
 2. Remember - yield does out from current function and executes caller code (!). Action in that function (and only that function) will be resumed on the signal.
