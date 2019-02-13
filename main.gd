@@ -10,7 +10,7 @@ export(String) var private_key
 export(String) var game_id
 export(bool) var verbose = false
 
-signal gamejolt_request_completed(type,message)
+signal gamejolt_request_completed(type, requestResults)
 
 var username_cache
 var token_cache
@@ -23,7 +23,7 @@ var responseHeaders = null
 var responseStatus = null
 var jsonParseError = null
 var gameJoltErrorMessage = null
-var lasttype = []
+var currentType = null
 
 func init(pk,gi):
 	private_key=pk
@@ -178,22 +178,25 @@ func get_user_token():
 	pass
 
 # returns true if request execution was positive and response is received
-func is_ok():
+func is_ok(requestResults):
 	return (
-		(requestError == OK) and
-		(responseResult == RESULT_SUCCESS) and
-		(responseStatus >= 200) and
-		(responseStatus < 300) and
-		(jsonParseError == OK) and
-		(gameJoltErrorMessage == null)
+		(requestResults.requestError == OK) and
+		(requestResults.responseResult == RESULT_SUCCESS) and
+		(requestResults.responseStatus >= 200) and
+		(requestResults.responseStatus < 300) and
+		(requestResults.jsonParseError == OK) and
+		(requestResults.gameJoltErrorMessage == null)
 	)
 
-func print_error():
+func print_error(requestResults):
 	print('GameJolt error.'
-	 + ' RequestError: ' + str(requestError)
-	 + ' ResponseResult: ' + str(responseResult)
-	 + ' JsonParseError: ' + str(jsonParseError)
-	 + ' GameJoltErrorMessage: ' + str(gameJoltErrorMessage))
+	 + ' RequestError: ' + str(requestResults.requestError)
+	 + ' ResponseResult: ' + str(requestResults.responseResult)
+	 + ' JsonParseError: ' + str(requestResults.jsonParseError)
+	 + ' GameJoltErrorMessage: ' + str(requestResults.gameJoltErrorMessage))
+
+func clear_call_queue():
+	queue.clear()
 
 func _reset():
 	requestError = null
@@ -204,20 +207,32 @@ func _reset():
 	jsonParseError = null
 	gameJoltErrorMessage = null
 
+func _complete_request():
+	busy = false
+	var requestResults = {
+		requestError = requestError,
+		responseResult = responseResult,
+		responseHeaders = responseHeaders,
+		responseStatus = responseStatus,
+		responseBody = responseBody,
+		jsonParseError = jsonParseError,
+		gameJoltErrorMessage = gameJoltErrorMessage
+	}
+	emit_signal('gamejolt_request_completed', currentType, requestResults)
+	_next_call_from_queue()
+
+
 func _call_gj_api(type, parameters):
 	if busy:
-		requestError = ERR_BUSY
 		queue.append([type,parameters])
 		return
 	busy = true
 	_reset()
 	var url = _compose_url(type, parameters)
-	lasttype.append(type)
+	currentType = type
 	requestError = request(url)
 	if requestError != OK:
-		print(requestError)
-#		busy = false
-#		emit_signal('gamejolt_request_completed')
+		_complete_request()
 	pass
 
 func _compose_url(urlpath, parameters={}):
@@ -242,13 +257,8 @@ func _compose_url(urlpath, parameters={}):
 	pass
 	
 func _on_HTTPRequest_request_completed(result, response_code, headers, body):
-	busy = false
-	var size=queue.size()
-	if size!=0:
-		_call_gj_api(queue[0][0], queue[0][1])
-		queue.pop_front()
 	if result != OK:
-		emit_signal('gamejolt_request_completed',lasttype,"error")
+		_complete_request()
 		return
 	responseResult = result
 	responseStatus = response_code
@@ -266,9 +276,15 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 			gameJoltErrorMessage = responseBody['message']
 	else:
 		responseBody = null
-	emit_signal('gamejolt_request_completed',lasttype[0],responseBody)
-	lasttype.pop_front()
-	pass # replace with function body
+	_complete_request()
+	pass
+
+func _next_call_from_queue():
+	if queue.empty():
+		return
+	var nextCall = queue.pop_front()
+	_call_gj_api(nextCall[0], nextCall[1])
+	pass
 
 func _verbose(message):
 	if verbose:

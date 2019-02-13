@@ -23,12 +23,37 @@
 **How to use it**
 1. Put the plugin as a Node in your project.
 2. Call the function from the plugin. It'll initiate the request.
-3. When response is received plugin will send the signal gamejolt_request_completed with the type of the request and a message
+3. When response is received plugin will send the signal gamejolt_request_completed with the type of the request and a results directory.
 4. You may connect to this signal or yield. Now, you can also write all your request directly, there is a queue to process all the requests.
 5. Get the response from the plugin - it's the parsed JSON to godot directory, which is the "response" part from GameJoltAPI.
 
 
 # Methods description
+
+## Emited signal and interpretation results
+### Emited signal
+`signal gamejolt_request_completed(type, requestResults)`
+
+Signal emited by plugin, when request is completed with positive or negative status.
+* type - the url path of the request.
+* requestResults - the Dictionary containing results of the request. Contains such properties
+  * requestError - the error status of request
+  * responseResult - the response result (enumerated in HttpRequest)
+  * responseHeaders - the headers of the response
+  * responseStatus - the HTTP status code of the response
+  * responseBody - the parsed JSON body of GameJolt response
+  * jsonParserError - the status of parsing response
+  * gameJoltErrorMessage - the error message from Game Jolt
+
+### Check results
+`is_ok(requestResults)`
+
+Checks all results of requestResults from signal and return true if response is fully success.
+
+### Print out error results
+`print_error(requestResults)`
+
+Print out information about reason of fail from requestResults.
 
 ## Authentication and users
 ### Authenticate user
@@ -212,8 +237,9 @@ Get a time from the server.
 
 ## Additional methods
 
-* get_username() - returns authenticated username
-* get_user_token() - return the authenticated user's token
+* get_username() - returns the current authenticated username.
+* get_user_token() - returns the current authenticated user's token.
+* clear_call_queue() - allow to clear a queue of calls. Useable in situation, that one of the call finish with failure.
 
 # Hints
 
