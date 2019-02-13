@@ -23,10 +23,38 @@
 **How to use it**
 1. Put the plugin as a Node in your project.
 2. Call the function from the plugin. It'll initiate the request.
-3. When response is received plugin will send the signal gamejolt_request_completed with the type of the request and a results directory.
+3. When response is received plugin will send the signal gamejolt_request_completed with the results collected in Godot Directory structure.
 4. You may connect to this signal or yield. Now, you can also write all your request directly, there is a queue to process all the requests.
 5. Get the response from the plugin - it's the parsed JSON to godot directory, which is the "response" part from GameJoltAPI.
 
+# Sample usage
+
+Create godot project.
+Create folder addons/gamejolt and put plugin files there.
+Configure project will use this plugin.
+Configure SSL certificates to use gamejolt SSL certificates.
+
+Create main scene node, save scene and set it as the main godot project scene.
+Add to main scene child node of GameJoltAPI.
+Add to main scene script as below (replace user-name and user-private-key with yours).
+`
+func test_gamejolt():
+	$GameJoltAPI.auth_user('user-name', 'user-private-key')
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	if $GameJoltAPI.is_ok(result):
+		print(result.requestPath + ' ... Success: ' + result.responseBody.success)
+	else:
+		$GameJoltAPI.print_error(result)
+	
+	$GameJoltAPI.fetch_time()
+	result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	if $GameJoltAPI.is_ok(result):
+		print(str(result))
+		print(result.requestPath + ' ... Success: ' + result.responseBody.success)
+		print('    Timestamp: ' + str(result.responseBody.timestamp))
+	else:
+		$GameJoltAPI.print_error(result)
+`
 
 # Methods description
 
@@ -37,6 +65,7 @@
 Signal emited by plugin, when request is completed with positive or negative status.
 * type - the url path of the request.
 * requestResults - the Dictionary containing results of the request. Contains such properties
+  * requestPath - the path of call
   * requestError - the error status of request
   * responseResult - the response result (enumerated in HttpRequest)
   * responseHeaders - the headers of the response

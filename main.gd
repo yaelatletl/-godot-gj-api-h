@@ -10,7 +10,7 @@ export(String) var private_key
 export(String) var game_id
 export(bool) var verbose = false
 
-signal gamejolt_request_completed(type, requestResults)
+signal gamejolt_request_completed(requestResults)
 
 var username_cache
 var token_cache
@@ -210,6 +210,7 @@ func _reset():
 func _complete_request():
 	busy = false
 	var requestResults = {
+		requestPath = currentType,
 		requestError = requestError,
 		responseResult = responseResult,
 		responseHeaders = responseHeaders,
@@ -218,7 +219,7 @@ func _complete_request():
 		jsonParseError = jsonParseError,
 		gameJoltErrorMessage = gameJoltErrorMessage
 	}
-	emit_signal('gamejolt_request_completed', currentType, requestResults)
+	emit_signal('gamejolt_request_completed', requestResults)
 	_next_call_from_queue()
 
 
