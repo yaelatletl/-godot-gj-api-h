@@ -1,20 +1,21 @@
 extends HTTPRequest
 
-# GameJolt Godot plugin by Ackens https://github.com/ackens/-godot-gj-api
+# Original GameJolt Godot plugin by Ackens https://github.com/ackens/-godot-gj-api
+# Fork Gamegolt Godot plugin by rojekabc https://github.com/rojekabc/-godot-gj-api
 # GameJolt API index page https://gamejolt.com/game-api/doc
 
 const BASE_GAMEJOLT_API_URL = 'https://api.gamejolt.com/api/game/v1_2'
 
 export(String) var private_key
 export(String) var game_id
-export(bool) var verbose=true
+export(bool) var verbose = false
 
 signal gamejolt_request_completed(type,message)
 
 var username_cache
 var token_cache
 var busy = false
-var queue=[]
+var queue = []
 var requestError = null
 var responseResult = null
 var responseBody = null
@@ -22,13 +23,16 @@ var responseHeaders = null
 var responseStatus = null
 var jsonParseError = null
 var gameJoltErrorMessage = null
-var lasttype=[]
+var lasttype = []
+
 func init(pk,gi):
 	private_key=pk
 	game_id=gi
+
 func _ready():
 	connect("request_completed", self, '_on_HTTPRequest_request_completed')
 	pass
+
 func auto_auth():
 	#get username and token form url on gamejolt (only work with html5)
 	var url=str(JavaScript.eval("window.location.href"))
@@ -39,6 +43,7 @@ func auto_auth():
 		_call_gj_api('/users/auth/', {user_token = token_cache, username = username_cache})
 	else:
 		print("not html5 game on gamejolt")
+
 func auth_user(username, token):
 	_call_gj_api('/users/auth/', {user_token = token, username = username})
 	username_cache = username
