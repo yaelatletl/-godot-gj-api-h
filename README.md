@@ -273,3 +273,19 @@ Get a time from the server.
 
 1. Don't use thread for html5 games. HTTPrequest doesn't work.
 2. Remember - yield does out from current function and executes caller code (!). Action in that function (and only that function) will be resumed on the signal.
+
+# Plugin Versions
+
+## 2.0
+* Rojekabc (https://github.com/rojekabc) create fork.
+* Plugin refactoring.
+* Append PEM for SSL comunication.
+
+## 2.1
+* Take changes from deakcor (https://github.com/deakcor) fork.
+* Queue calls.
+* GameJolt signal with collected results.
+* Update GameJolt certificates.
+
+## 2.2
+* Sample project, which uses plugin.

@@ -13,6 +13,14 @@ config_version=3
 config/name="Godot GameJolt API Sample"
 config/icon="res://icon.png"
 
+[editor_plugins]
+
+enabled=PoolStringArray( "gamejolt" )
+
+[network]
+
+ssl/certificates="res://addons/gamejolt/gamejolt.pem"
+
 [rendering]
 
 environment/default_environment="res://default_env.tres"
