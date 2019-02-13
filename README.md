@@ -37,7 +37,8 @@ Configure SSL certificates to use gamejolt SSL certificates.
 Create main scene node, save scene and set it as the main godot project scene.
 Add to main scene child node of GameJoltAPI.
 Add to main scene script as below (replace user-name and user-private-key with yours).
-`
+
+```
 func test_gamejolt():
 	$GameJoltAPI.auth_user('user-name', 'user-private-key')
 	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
@@ -54,7 +55,7 @@ func test_gamejolt():
 		print('    Timestamp: ' + str(result.responseBody.timestamp))
 	else:
 		$GameJoltAPI.print_error(result)
-`
+```
 
 # Methods description
 
