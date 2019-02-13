@@ -35,14 +35,12 @@ func _ready():
 
 func auto_auth():
 	#get username and token form url on gamejolt (only work with html5)
-	var url=str(JavaScript.eval("window.location.href"))
-	var tmp = url.split('gjapi_username=')
-	if tmp.size()>1:
-		username_cache=tmp[1].split("&")[0]
-		token_cache=tmp[1].split("gjapi_token=")[1]
+	username_cache = JavaScript.eval('var urlParams = new URLSearchParams(window.location.search); urlParams.get("gjapi_username")', true)
+	token_cache = JavaScript.eval('var urlParams = new URLSearchParams(window.location.search); urlParams.get("gjapi_token")', true)
+	if username_cache and not username_cache.empty():
 		_call_gj_api('/users/auth/', {user_token = token_cache, username = username_cache})
 	else:
-		print("not html5 game on gamejolt")
+		_verbose('No GameJolt logged user')
 
 func auth_user(username, token):
 	_call_gj_api('/users/auth/', {user_token = token, username = username})
