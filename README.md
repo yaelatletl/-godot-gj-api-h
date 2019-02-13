@@ -14,11 +14,10 @@
 
 **Installing**
 1. Download the repository
-2. Create the "addons/gamejolt" folder in the root (res://) of your project
-3. Copy files from repositiory to that folder
-4. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
-5. Yay, you've installed the plugin!
-6. To allow Godot to use HTTPS communication append gamejolt.pem file in "Project Settings/Network/SSL/Certificates".
+2. Move the _addons_ folder, with _gamejolt_ folder together, to you root folder (res://) of Godot project
+3. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
+4. Yay, you've installed the plugin!
+5. To allow Godot to use HTTPS communication append gamejolt.pem file in "Project Settings/Network/SSL/Certificates".
 
 **How to use it**
 1. Put the plugin as a Node in your project.
