@@ -11,6 +11,7 @@
 * Tested on Godot 3.0.6 and Godot 3.1 alpha
 * One common singal on end of request
 * Many point of checking response
+* Sample Godot usage project
 
 **Installing**
 1. Download the repository
@@ -27,6 +28,8 @@
 5. Get the response from the plugin - it's the parsed JSON to godot directory, which is the "response" part from GameJoltAPI.
 
 # Sample usage
+
+This project is the prepared Godot sample of how to use this GameJolt plugin. Just open it in Godot and test calls to GameJolt.
 
 Create godot project.
 Create folder addons/gamejolt and put plugin files there.
@@ -175,21 +178,21 @@ Fetches scores for the user.
 _Uses authenticated user credentials_
 
 ### Fetch guest scores
-`fetch_guest_scores(guest, limit=null, table_id=null, better_than=null, worse_than=null)`
+`fetch_guest_scores(guest, table_id=null, limit=null, better_than=null, worse_than=null)`
 
 Fetches scores for the guest.
 * guest - the guest name
-* limit - how many scores to return. The default value is 10, the max is 100
 * table_id - what table to extract scores from. Leaving it blank will extract scores from the main table
+* limit - how many scores to return. The default value is 10, the max is 100
 * better_than - take scores better than
 * worse_than - take scores worse than
 
 ### Fetch global scores
-`fetch_global_scores(limit=null, table_id=null, better_than=null, worse_than=null)`
+`fetch_global_scores(table_id=null, limit=null, better_than=null, worse_than=null)`
 
 Fetches global scores.
-* limit - how many scores to return. The default value is 10, the max is 100
 * table_id - what table to extract scores from. Leaving it blank will extract scores from the main table
+* limit - how many scores to return. The default value is 10, the max is 100
 * better_than - take scores better than
 * worse_than - take scores worse than
 
