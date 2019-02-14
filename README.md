@@ -11,14 +11,14 @@
 * Tested on Godot 3.0.6 and Godot 3.1 alpha
 * One common singal on end of request
 * Many point of checking response
+* Sample Godot usage project
 
 **Installing**
 1. Download the repository
-2. Create the "addons/gamejolt" folder in the root (res://) of your project
-3. Copy files from repositiory to that folder
-4. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
-5. Yay, you've installed the plugin!
-6. To allow Godot to use HTTPS communication append gamejolt.pem file in "Project Settings/Network/SSL/Certificates".
+2. Move the _addons_ folder, with _gamejolt_ folder together, to you root folder (res://) of Godot project
+3. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
+4. Yay, you've installed the plugin!
+5. To allow Godot to use HTTPS communication append gamejolt.pem file in "Project Settings/Network/SSL/Certificates".
 
 **How to use it**
 1. Put the plugin as a Node in your project.
@@ -28,6 +28,8 @@
 5. Get the response from the plugin - it's the parsed JSON to godot directory, which is the "response" part from GameJoltAPI.
 
 # Sample usage
+
+This project is the prepared Godot sample of how to use this GameJolt plugin. Just open it in Godot and test calls to GameJolt.
 
 Create godot project.
 Create folder addons/gamejolt and put plugin files there.
@@ -177,21 +179,21 @@ Fetches scores for the user.
 _Uses authenticated user credentials_
 
 ### Fetch guest scores
-`fetch_guest_scores(guest, limit=null, table_id=null, better_than=null, worse_than=null)`
+`fetch_guest_scores(guest, table_id=null, limit=null, better_than=null, worse_than=null)`
 
 Fetches scores for the guest.
 * guest - the guest name
-* limit - how many scores to return. The default value is 10, the max is 100
 * table_id - what table to extract scores from. Leaving it blank will extract scores from the main table
+* limit - how many scores to return. The default value is 10, the max is 100
 * better_than - take scores better than
 * worse_than - take scores worse than
 
 ### Fetch global scores
-`fetch_global_scores(limit=null, table_id=null, better_than=null, worse_than=null)`
+`fetch_global_scores(table_id=null, limit=null, better_than=null, worse_than=null)`
 
 Fetches global scores.
-* limit - how many scores to return. The default value is 10, the max is 100
 * table_id - what table to extract scores from. Leaving it blank will extract scores from the main table
+* limit - how many scores to return. The default value is 10, the max is 100
 * better_than - take scores better than
 * worse_than - take scores worse than
 
@@ -275,3 +277,19 @@ Get a time from the server.
 
 1. Don't use thread for html5 games. HTTPrequest doesn't work.
 2. Remember - yield does out from current function and executes caller code (!). Action in that function (and only that function) will be resumed on the signal.
+
+# Plugin Versions
+
+## 2.0
+* Rojekabc (https://github.com/rojekabc) create fork.
+* Plugin refactoring.
+* Append PEM for SSL comunication.
+
+## 2.1
+* Take changes from deakcor (https://github.com/deakcor) fork.
+* Queue calls.
+* GameJolt signal with collected results.
+* Update GameJolt certificates.
+
+## 2.2
+* Sample project, which uses plugin.
