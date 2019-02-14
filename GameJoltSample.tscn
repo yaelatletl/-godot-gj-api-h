@@ -1,18 +1,166 @@
-[gd_scene load_steps=8 format=2]
+[gd_scene load_steps=9 format=2]
 
 [ext_resource path="res://addons/gamejolt/main.gd" type="Script" id=1]
 [ext_resource path="res://addons/gamejolt/gj_icon.png" type="Texture" id=2]
-[ext_resource path="res://resources/TitleStyle.tres" type="StyleBox" id=3]
-[ext_resource path="res://resources/TitleFont.tres" type="DynamicFont" id=4]
-[ext_resource path="res://resources/LabelFont.tres" type="DynamicFont" id=5]
+[ext_resource path="res://resources/PanelStyle.tres" type="StyleBox" id=3]
+[ext_resource path="res://resources/TitleStyle.tres" type="StyleBox" id=4]
+[ext_resource path="res://resources/TitleFont.tres" type="DynamicFont" id=5]
+[ext_resource path="res://resources/LabelFont.tres" type="DynamicFont" id=6]
 
-[sub_resource type="GDScript" id=2]
+[sub_resource type="GDScript" id=1]
 
 resource_name = "GameJoltSample"
 script/source = "extends Node
 
+const AUTH_SECTION = false
+const AUTH_GAME_ID = ''
+const AUTH_GAME_PRIVATE_KEY = ''
+const AUTH_USER_NAME = ''
+const AUTH_USER_TOKEN = ''
+
 func _ready():
 	$PluginSettings/Container/Button.connect('pressed', self, '_update_plugin_settings')
+	$UserAuthentication/Container/Button.connect('pressed', self, '_user_authentication')
+	$GameJoltTime/Container/Button.connect('pressed', self, '_gamejolt_time')
+	$GameJoltSession/Container/Open.connect('pressed', self, '_session_open')
+	$GameJoltSession/Container/Close.connect('pressed', self, '_session_close')
+	$GameJoltSession/Container/Ping.connect('pressed', self, '_session_ping')
+	$GameJoltSession/Container/Check.connect('pressed', self, '_session_check')
+	$GameJoltUser/Container/Button.connect('pressed', self, '_fetch_user')
+	$GameJoltTrophies/Container/Button.connect('pressed', self, '_fetch_trophies')
+	$GameJoltScores/Container/FetchTables.connect('pressed', self, '_fetch_tables')
+	$GameJoltScores/Container/FetchUserScores.connect('pressed', self, '_fetch_user_scores')
+	$GameJoltScores/Container/FetchGlobalScores.connect('pressed', self, '_fetch_global_scores')
+	
+	if AUTH_SECTION:
+		$GameJoltAPI.init(AUTH_GAME_ID, AUTH_GAME_PRIVATE_KEY)
+		$UserAuthentication/Container/UserName/LineEdit.text = AUTH_USER_NAME
+		$UserAuthentication/Container/Token/LineEdit.text = AUTH_USER_TOKEN
+		$GameJoltAPI.verbose = false
+		_user_authentication()
+		$PluginSettings/Container/GameId/LineEdit.text = $GameJoltAPI.game_id
+		$PluginSettings/Container/PrivateKey/LineEdit.text = $GameJoltAPI.private_key
+		$PluginSettings/Container/CheckBox.pressed = $GameJoltAPI.verbose
+	pass
+
+func _fetch_user_scores():
+	$GameJoltScores/Container/Lists/Scores/ItemList.clear()
+	var items = $GameJoltScores/Container/Lists/Tables/ItemList.get_selected_items()
+	if items.size() == 0: return
+	var tableId = $GameJoltScores/Container/Lists/Tables/ItemList.get_item_metadata(items[0])
+	$GameJoltAPI.fetch_scores(tableId, 20)
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	if $GameJoltAPI.is_ok(result):
+		for score in result.responseBody.scores:
+			var string = score.score
+			if not score.user.empty():
+				string += ' ' + score.user
+			elif not score.guest.empty():
+				string += ' ' + score.guest + ' (Guest)'
+			$GameJoltScores/Container/Lists/Scores/ItemList.add_item(string)
+	pass
+
+func _fetch_global_scores():
+	$GameJoltScores/Container/Lists/Scores/ItemList.clear()
+	var items = $GameJoltScores/Container/Lists/Tables/ItemList.get_selected_items()
+	if items.size() == 0: return
+	var tableId = $GameJoltScores/Container/Lists/Tables/ItemList.get_item_metadata(items[0])
+	$GameJoltAPI.fetch_global_scores(tableId, 20)
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	if $GameJoltAPI.is_ok(result):
+		for score in result.responseBody.scores:
+			var string = score.score
+			if not score.user.empty():
+				string += ' ' + score.user
+			elif not score.guest.empty():
+				string += ' ' + score.guest + ' (Guest)'
+			$GameJoltScores/Container/Lists/Scores/ItemList.add_item(string)
+	pass
+
+func _fetch_tables():
+	$GameJoltScores/Container/Lists/Tables/ItemList.clear()
+	$GameJoltAPI.fetch_tables()
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	if $GameJoltAPI.is_ok(result):
+		var idx = 0
+		for table in result.responseBody.tables:
+			$GameJoltScores/Container/Lists/Tables/ItemList.add_item(table.name)
+			$GameJoltScores/Container/Lists/Tables/ItemList.set_item_metadata(idx, table.id)
+			idx += 1
+	
+	pass
+
+func _fetch_trophies():
+	for child in $GameJoltTrophies/Container/Trophies/Container.get_children():
+		$GameJoltTrophies/Container/Trophies/Container.remove_child(child)
+		child.queue_free()
+	$GameJoltAPI.fetch_trophy()
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	if $GameJoltAPI.is_ok(result):
+		for trophy in result.responseBody.trophies:
+			var trophyCheck = CheckBox.new()
+			trophyCheck.text = trophy.title + ' [' + trophy.difficulty + ']'
+			trophyCheck.hint_tooltip = trophy.description
+			trophyCheck.pressed = trophy.achieved == 'true'
+			trophyCheck.connect('toggled', self, '_trophy_toggled', [trophyCheck, trophy.id])
+			$GameJoltTrophies/Container/Trophies/Container.add_child(trophyCheck)
+	pass
+
+func _trophy_toggled(pressed, trophyCheck, trophyId):
+	if pressed:
+		$GameJoltAPI.set_trophy_achieved(trophyId)
+	else:
+		$GameJoltAPI.remove_trophy_achieved(trophyId)
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	if $GameJoltAPI.is_ok(result):
+		trophyCheck.pressed = pressed
+	else:
+		trophyCheck.pressed = not pressed
+	pass
+
+func _fetch_user():
+	$GameJoltAPI.fetch_user($GameJoltUser/Container/User/LineEdit.text)
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	$GameJoltUser/Container/UserInformation.bbcode_text = ''
+	if $GameJoltAPI.is_ok(result):
+		for user in result.responseBody.users:
+			$GameJoltUser/Container/UserInformation.bbcode_text += 'User Id: ' + user.id + '\\n'
+			$GameJoltUser/Container/UserInformation.bbcode_text += 'User Name: ' + user.username + '\\n'
+			$GameJoltUser/Container/UserInformation.bbcode_text += 'User Type: ' + user.type + '\\n'
+			$GameJoltUser/Container/UserInformation.bbcode_text += 'User Status: ' + user.status + '\\n'
+
+func _session_open():
+	$GameJoltAPI.open_session()
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	_fill_session(result, 'Opened')
+	pass
+	
+func _session_ping():
+	$GameJoltAPI.ping_session()
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	_fill_session(result)
+	pass
+	
+func _session_close():
+	$GameJoltAPI.close_session()
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	_fill_session(result, 'Closed')
+	pass
+	
+func _session_check():
+	$GameJoltAPI.check_session()
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	_fill_session(result)
 	pass
 
 func _update_plugin_settings():
@@ -20,10 +168,71 @@ func _update_plugin_settings():
 	$GameJoltAPI.game_id = $PluginSettings/Container/GameId/LineEdit.text
 	$GameJoltAPI.private_key = $PluginSettings/Container/PrivateKey/LineEdit.text
 	pass
+
+func _user_authentication():
+	var userName = $UserAuthentication/Container/UserName/LineEdit.text
+	var userToken = $UserAuthentication/Container/Token/LineEdit.text
+	$GameJoltAPI.auth_user(userName, userToken)
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	pass
+
+func _gamejolt_time():
+	$GameJoltAPI.fetch_time()
+	var result = yield($GameJoltAPI, 'gamejolt_request_completed')
+	_fill_status(result)
+	if $GameJoltAPI.is_ok(result):
+		var hour = _string_digit_format(result.responseBody.hour, 2)
+		var minute = _string_digit_format(result.responseBody.minute, 2)
+		var second = _string_digit_format(result.responseBody.second, 2)
+		var timezone = result.responseBody.timezone
+		$GameJoltTime/Container/Time.text = hour + ':' + minute + ':' + second + ' ' + timezone;
+		pass
+	pass
+
+func _fill_session(result, okInfo = 'Valid', notOkInfo = 'Invalid'):
+	if $GameJoltAPI.is_ok(result):
+		$GameJoltSession/Container/Session.text = okInfo
+	else:
+		$GameJoltSession/Container/Session.text = notOkInfo
+
+func _fill_status(result):
+	var string = 'Path: ' + result.requestPath
+	string += ' Result: '
+	if $GameJoltAPI.is_ok(result):
+		string += 'success'
+	else:
+		string += 'fail'
+		var message = null
+		if result.requestError != OK:
+			message = 'Request error [@GlobalScope.Error] is ' + result.requestError
+		elif result.responseResult != HTTPRequest.RESULT_SUCCESS:
+			message = 'Response result [HttpRequest.Result] is ' + result.responseResult
+		elif result.responseStatus >= 300:
+			message = 'Http response status code is ' + result.responseStatus
+		elif result.jsonParseError != OK:
+			message = 'JSON parse error [@GlobalScope.Error] is ' + result.jsonParseError
+		elif result.gameJoltErrorMessage != null and not result.gameJoltErrorMessage.empty():
+			message = 'GameJolt error is ' + result.gameJoltErrorMessage
+		if message:
+			string += ' Message: ' + message
+	$Status/Label.text = string
+	pass
+
+func _string_digit_format(inString, numOfDigits):
+	if inString.length() == numOfDigits:
+		return inString
+	else:
+		var outString = ''
+		for i in range(numOfDigits - inString.length()):
+			outString += '0'
+		outString += inString
+		return outString
+
 "
 _sections_unfolded = [ "Resource" ]
 
-[sub_resource type="StyleBoxFlat" id=1]
+[sub_resource type="StyleBoxFlat" id=2]
 
 content_margin_left = -1.0
 content_margin_right = -1.0
@@ -31,11 +240,11 @@ content_margin_top = -1.0
 content_margin_bottom = -1.0
 bg_color = Color( 0, 0, 0, 1 )
 draw_center = true
-border_width_left = 10
-border_width_top = 10
+border_width_left = 0
+border_width_top = 0
 border_width_right = 10
-border_width_bottom = 10
-border_color = Color( 0.976562, 0.595897, 0.0572205, 1 )
+border_width_bottom = 0
+border_color = Color( 0.953125, 0.563097, 0.0111694, 1 )
 border_blend = true
 corner_radius_top_left = 0
 corner_radius_top_right = 0
@@ -54,7 +263,7 @@ _sections_unfolded = [ "Border", "Border Width" ]
 
 [node name="GameJoltSample" type="Node" index="0"]
 
-script = SubResource( 2 )
+script = SubResource( 1 )
 
 [node name="GameJoltAPI" type="HTTPRequest" parent="." index="0"]
 
@@ -72,22 +281,26 @@ verbose = false
 
 [node name="PluginSettings" type="PanelContainer" parent="." index="1"]
 
+editor/display_folded = true
 anchor_left = 1.0
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 0.0
-margin_left = -300.0
+margin_left = -304.0
 margin_top = 10.0
-margin_right = -10.0
-margin_bottom = 200.0
+margin_right = -14.0
+margin_bottom = 213.0
 rect_pivot_offset = Vector2( 0, 0 )
 rect_clip_content = false
 mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-custom_styles/panel = SubResource( 1 )
+custom_styles/panel = ExtResource( 3 )
 _sections_unfolded = [ "Anchor", "Margin", "custom_styles" ]
+__meta__ = {
+"_edit_group_": true
+}
 
 [node name="Container" type="VBoxContainer" parent="PluginSettings" index="0"]
 
@@ -121,8 +334,8 @@ mouse_filter = 2
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 4
-custom_styles/normal = ExtResource( 3 )
-custom_fonts/font = ExtResource( 4 )
+custom_styles/normal = ExtResource( 4 )
+custom_fonts/font = ExtResource( 5 )
 text = "Plugin Settings"
 align = 1
 percent_visible = 1.0
@@ -164,7 +377,7 @@ mouse_filter = 2
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 3
 size_flags_vertical = 4
-custom_fonts/font = ExtResource( 5 )
+custom_fonts/font = ExtResource( 6 )
 text = "Game Id"
 percent_visible = 1.0
 lines_skipped = 0
@@ -197,7 +410,6 @@ _sections_unfolded = [ "Size Flags" ]
 
 [node name="PrivateKey" type="HBoxContainer" parent="PluginSettings/Container" index="2"]
 
-editor/display_folded = true
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 0.0
@@ -229,7 +441,7 @@ mouse_filter = 2
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 3
 size_flags_vertical = 4
-custom_fonts/font = ExtResource( 5 )
+custom_fonts/font = ExtResource( 6 )
 text = "Private Key"
 percent_visible = 1.0
 lines_skipped = 0
@@ -252,6 +464,7 @@ mouse_filter = 0
 mouse_default_cursor_shape = 1
 size_flags_horizontal = 3
 size_flags_vertical = 1
+secret = true
 focus_mode = 2
 context_menu_enabled = true
 placeholder_alpha = 0.6
@@ -275,7 +488,7 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-custom_fonts/font = ExtResource( 5 )
+custom_fonts/font = ExtResource( 6 )
 toggle_mode = true
 enabled_focus_mode = 2
 shortcut = null
@@ -301,12 +514,1133 @@ mouse_filter = 0
 mouse_default_cursor_shape = 0
 size_flags_horizontal = 1
 size_flags_vertical = 1
-custom_fonts/font = ExtResource( 5 )
+custom_fonts/font = ExtResource( 6 )
 toggle_mode = false
 enabled_focus_mode = 2
 shortcut = null
 group = null
 text = "Update"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="UserAuthentication" type="PanelContainer" parent="." index="2"]
+
+editor/display_folded = true
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+margin_left = -304.0
+margin_top = 220.0
+margin_right = -14.0
+margin_bottom = 390.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_styles/panel = ExtResource( 3 )
+_sections_unfolded = [ "Anchor", "Margin", "custom_styles" ]
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Container" type="VBoxContainer" parent="UserAuthentication" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 280.0
+margin_bottom = 160.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+
+[node name="Title" type="Label" parent="UserAuthentication/Container" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 270.0
+margin_bottom = 45.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+custom_styles/normal = ExtResource( 4 )
+custom_fonts/font = ExtResource( 5 )
+text = "User Authentication"
+align = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="UserName" type="HBoxContainer" parent="UserAuthentication/Container" index="1"]
+
+editor/display_folded = true
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 49.0
+margin_right = 270.0
+margin_bottom = 76.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+hint_tooltip = "GameJolt game id"
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+_sections_unfolded = [ "Hint" ]
+
+[node name="Label" type="Label" parent="UserAuthentication/Container/UserName" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 133.0
+margin_bottom = 27.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 3
+size_flags_vertical = 4
+custom_fonts/font = ExtResource( 6 )
+text = "User Name"
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "Size Flags", "custom_fonts" ]
+
+[node name="LineEdit" type="LineEdit" parent="UserAuthentication/Container/UserName" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 137.0
+margin_right = 270.0
+margin_bottom = 27.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 1
+size_flags_horizontal = 3
+size_flags_vertical = 1
+focus_mode = 2
+context_menu_enabled = true
+placeholder_alpha = 0.6
+caret_blink = false
+caret_blink_speed = 0.65
+caret_position = 0
+_sections_unfolded = [ "Size Flags" ]
+
+[node name="Token" type="HBoxContainer" parent="UserAuthentication/Container" index="2"]
+
+editor/display_folded = true
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 80.0
+margin_right = 270.0
+margin_bottom = 107.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+hint_tooltip = "GameJolt Game Private Key"
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+_sections_unfolded = [ "Hint" ]
+
+[node name="Label" type="Label" parent="UserAuthentication/Container/Token" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 133.0
+margin_bottom = 27.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 3
+size_flags_vertical = 4
+custom_fonts/font = ExtResource( 6 )
+text = "User Token"
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "Size Flags", "custom_fonts" ]
+
+[node name="LineEdit" type="LineEdit" parent="UserAuthentication/Container/Token" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 137.0
+margin_right = 270.0
+margin_bottom = 27.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 1
+size_flags_horizontal = 3
+size_flags_vertical = 1
+secret = true
+focus_mode = 2
+context_menu_enabled = true
+placeholder_alpha = 0.6
+caret_blink = false
+caret_blink_speed = 0.65
+caret_position = 0
+
+[node name="Button" type="Button" parent="UserAuthentication/Container" index="3"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 111.0
+margin_right = 270.0
+margin_bottom = 144.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Authenticate"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="Status" type="PanelContainer" parent="." index="3"]
+
+editor/display_folded = true
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 10.0
+margin_top = -50.0
+margin_right = -14.0
+margin_bottom = -10.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_styles/panel = ExtResource( 3 )
+_sections_unfolded = [ "Anchor", "Margin", "custom_styles" ]
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Label" type="Label" parent="Status" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 10.0
+margin_top = 13.0
+margin_right = 990.0
+margin_bottom = 27.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="GameJoltTime" type="PanelContainer" parent="." index="4"]
+
+editor/display_folded = true
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 720.0
+margin_top = 400.0
+margin_right = 1010.0
+margin_bottom = 520.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_styles/panel = ExtResource( 3 )
+_sections_unfolded = [ "custom_styles" ]
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Container" type="VBoxContainer" parent="GameJoltTime" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 280.0
+margin_bottom = 110.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+
+[node name="Title" type="Label" parent="GameJoltTime/Container" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 270.0
+margin_bottom = 45.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+custom_styles/normal = ExtResource( 4 )
+custom_fonts/font = ExtResource( 5 )
+text = "GameJolt Time"
+align = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "custom_fonts", "custom_styles" ]
+
+[node name="Time" type="Label" parent="GameJoltTime/Container" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 49.0
+margin_right = 270.0
+margin_bottom = 63.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="Button" type="Button" parent="GameJoltTime/Container" index="2"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 67.0
+margin_right = 270.0
+margin_bottom = 100.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Fetch Time"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="GameJoltUser" type="PanelContainer" parent="." index="5"]
+
+editor/display_folded = true
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 10.0
+margin_top = 250.0
+margin_right = 260.0
+margin_bottom = 467.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_styles/panel = ExtResource( 3 )
+_sections_unfolded = [ "custom_styles" ]
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Container" type="VBoxContainer" parent="GameJoltUser" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 240.0
+margin_bottom = 207.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+
+[node name="Title" type="Label" parent="GameJoltUser/Container" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 230.0
+margin_bottom = 45.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+custom_styles/normal = ExtResource( 4 )
+custom_fonts/font = ExtResource( 5 )
+text = "GameJolt User"
+align = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "custom_fonts", "custom_styles" ]
+
+[node name="UserInformation" type="RichTextLabel" parent="GameJoltUser/Container" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 49.0
+margin_right = 230.0
+margin_bottom = 129.0
+rect_min_size = Vector2( 0, 80 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = true
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+bbcode_enabled = true
+bbcode_text = ""
+visible_characters = -1
+percent_visible = 1.0
+meta_underlined = true
+tab_size = 4
+text = ""
+scroll_active = true
+scroll_following = false
+selection_enabled = false
+override_selected_font_color = false
+_sections_unfolded = [ "BBCode", "Rect" ]
+
+[node name="User" type="HBoxContainer" parent="GameJoltUser/Container" index="2"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 133.0
+margin_right = 230.0
+margin_bottom = 160.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+
+[node name="Label" type="Label" parent="GameJoltUser/Container/User" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 113.0
+margin_bottom = 27.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 3
+size_flags_vertical = 4
+custom_fonts/font = ExtResource( 6 )
+text = "User Name"
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "Size Flags", "custom_fonts" ]
+
+[node name="LineEdit" type="LineEdit" parent="GameJoltUser/Container/User" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 117.0
+margin_right = 230.0
+margin_bottom = 27.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 1
+size_flags_horizontal = 3
+size_flags_vertical = 1
+focus_mode = 2
+context_menu_enabled = true
+placeholder_alpha = 0.6
+caret_blink = false
+caret_blink_speed = 0.65
+caret_position = 0
+_sections_unfolded = [ "Size Flags" ]
+
+[node name="Button" type="Button" parent="GameJoltUser/Container" index="3"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 164.0
+margin_right = 230.0
+margin_bottom = 197.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Fetch User"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="GameJoltSession" type="PanelContainer" parent="." index="6"]
+
+editor/display_folded = true
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 260.0
+margin_bottom = 241.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_styles/panel = ExtResource( 3 )
+_sections_unfolded = [ "custom_styles" ]
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Container" type="VBoxContainer" parent="GameJoltSession" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 240.0
+margin_bottom = 221.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+
+[node name="Title" type="Label" parent="GameJoltSession/Container" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 230.0
+margin_bottom = 45.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+custom_styles/normal = ExtResource( 4 )
+custom_fonts/font = ExtResource( 5 )
+text = "GameJolt Session"
+align = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "custom_fonts", "custom_styles" ]
+
+[node name="Session" type="Label" parent="GameJoltSession/Container" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 49.0
+margin_right = 230.0
+margin_bottom = 63.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+text = "Unknown"
+align = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="Open" type="Button" parent="GameJoltSession/Container" index="2"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 67.0
+margin_right = 230.0
+margin_bottom = 100.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Open"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="Ping" type="Button" parent="GameJoltSession/Container" index="3"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 104.0
+margin_right = 230.0
+margin_bottom = 137.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Ping"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="Check" type="Button" parent="GameJoltSession/Container" index="4"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 141.0
+margin_right = 230.0
+margin_bottom = 174.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Check"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="Close" type="Button" parent="GameJoltSession/Container" index="5"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 178.0
+margin_right = 230.0
+margin_bottom = 211.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Close"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="GameJoltTrophies" type="PanelContainer" parent="." index="7"]
+
+editor/display_folded = true
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 270.0
+margin_top = 310.0
+margin_right = 710.0
+margin_bottom = 540.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_styles/panel = ExtResource( 3 )
+_sections_unfolded = [ "custom_styles" ]
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Container" type="VBoxContainer" parent="GameJoltTrophies" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 430.0
+margin_bottom = 220.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+
+[node name="Title" type="Label" parent="GameJoltTrophies/Container" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 420.0
+margin_bottom = 45.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+custom_styles/normal = ExtResource( 4 )
+custom_fonts/font = ExtResource( 5 )
+text = "GameJolt Trophies"
+align = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "custom_fonts", "custom_styles" ]
+
+[node name="Trophies" type="ScrollContainer" parent="GameJoltTrophies/Container" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 49.0
+margin_right = 420.0
+margin_bottom = 173.0
+rect_min_size = Vector2( 0, 120 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = true
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 3
+scroll_horizontal_enabled = true
+scroll_horizontal = 0
+scroll_vertical_enabled = true
+scroll_vertical = 0
+scroll_deadzone = 0
+_sections_unfolded = [ "Rect", "Scroll", "Size Flags" ]
+
+[node name="Container" type="VBoxContainer" parent="GameJoltTrophies/Container/Trophies" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 420.0
+margin_bottom = 124.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 0
+_sections_unfolded = [ "Hint", "Size Flags" ]
+
+[node name="Button" type="Button" parent="GameJoltTrophies/Container" index="2"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 177.0
+margin_right = 420.0
+margin_bottom = 210.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Fetch Trophies"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="GameJoltScores" type="PanelContainer" parent="." index="8"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 270.0
+margin_top = 10.0
+margin_right = 710.0
+margin_bottom = 300.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_styles/panel = ExtResource( 3 )
+_sections_unfolded = [ "custom_styles" ]
+__meta__ = {
+"_edit_group_": true
+}
+
+[node name="Container" type="VBoxContainer" parent="GameJoltScores" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 430.0
+margin_bottom = 290.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+
+[node name="Title" type="Label" parent="GameJoltScores/Container" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 420.0
+margin_bottom = 45.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 4
+custom_styles/normal = ExtResource( 4 )
+custom_fonts/font = ExtResource( 5 )
+text = "GameJolt Scores"
+align = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "custom_fonts", "custom_styles" ]
+
+[node name="Lists" type="HBoxContainer" parent="GameJoltScores/Container" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 49.0
+margin_right = 420.0
+margin_bottom = 169.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+
+[node name="Tables" type="ScrollContainer" parent="GameJoltScores/Container/Lists" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 180.0
+margin_bottom = 120.0
+rect_min_size = Vector2( 180, 120 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = true
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 3
+scroll_horizontal_enabled = false
+scroll_horizontal = 0
+scroll_vertical_enabled = true
+scroll_vertical = 0
+scroll_deadzone = 0
+_sections_unfolded = [ "Rect", "Scroll", "Size Flags" ]
+
+[node name="ItemList" type="ItemList" parent="GameJoltScores/Container/Lists/Tables" index="2"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 180.0
+margin_bottom = 120.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = true
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_styles/bg = SubResource( 2 )
+items = [  ]
+select_mode = 0
+allow_reselect = false
+icon_mode = 1
+fixed_icon_size = Vector2( 0, 0 )
+_sections_unfolded = [ "Columns", "Icon", "Size Flags", "custom_styles" ]
+
+[node name="Scores" type="ScrollContainer" parent="GameJoltScores/Container/Lists" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 184.0
+margin_right = 420.0
+margin_bottom = 120.0
+rect_min_size = Vector2( 0, 120 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = true
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+scroll_horizontal_enabled = false
+scroll_horizontal = 0
+scroll_vertical_enabled = true
+scroll_vertical = 0
+scroll_deadzone = 0
+_sections_unfolded = [ "Rect", "Scroll", "Size Flags" ]
+
+[node name="ItemList" type="ItemList" parent="GameJoltScores/Container/Lists/Scores" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 236.0
+margin_bottom = 120.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = true
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_styles/bg = SubResource( 2 )
+items = [  ]
+select_mode = 0
+allow_reselect = false
+icon_mode = 1
+fixed_icon_size = Vector2( 0, 0 )
+_sections_unfolded = [ "Columns", "Icon", "Size Flags", "custom_styles" ]
+
+[node name="FetchTables" type="Button" parent="GameJoltScores/Container" index="2"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 173.0
+margin_right = 420.0
+margin_bottom = 206.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Fetch Tables"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="FetchUserScores" type="Button" parent="GameJoltScores/Container" index="3"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 210.0
+margin_right = 420.0
+margin_bottom = 243.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Fetch User Scores"
+flat = false
+align = 1
+_sections_unfolded = [ "custom_fonts" ]
+
+[node name="FetchGlobalScores" type="Button" parent="GameJoltScores/Container" index="4"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 247.0
+margin_right = 420.0
+margin_bottom = 280.0
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = false
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+custom_fonts/font = ExtResource( 6 )
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "Fetch Global Scores"
 flat = false
 align = 1
 _sections_unfolded = [ "custom_fonts" ]

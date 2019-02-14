@@ -16,18 +16,21 @@ var username_cache
 var token_cache
 var busy = false
 var queue = []
-var requestError = null
-var responseResult = null
-var responseBody = null
-var responseHeaders = null
-var responseStatus = null
-var jsonParseError = null
-var gameJoltErrorMessage = null
-var currentType = null
 
-func init(pk,gi):
-	private_key=pk
-	game_id=gi
+var requestResult = {
+	requestPath = null,
+	requestError = null,
+	responseResult = null,
+	responseBody = null,
+	responseHeaders = null,
+	responseStatus = null,
+	jsonParseError = null,
+	gameJoltErrorMessage = null
+}
+
+func init(gameId, gamePrivateKey):
+	game_id = gameId
+	private_key = gamePrivateKey
 
 func _ready():
 	connect("request_completed", self, '_on_HTTPRequest_request_completed')
@@ -98,12 +101,12 @@ func fetch_scores(table_id=null, limit=null, better_than=null, worse_than=null):
 		{username = username_cache, user_token = token_cache, limit = limit, table_id = table_id, better_than = better_than, worse_than = worse_than})
 	pass
 
-func fetch_guest_scores(guest, limit=null, table_id=null, better_than=null, worse_than=null):
+func fetch_guest_scores(guest, table_id=null, limit=null, better_than=null, worse_than=null):
 	_call_gj_api('/scores/',
 		{guest = guest, limit = limit, table_id = table_id, better_than = better_than, worse_than = worse_than})
 	pass
 	
-func fetch_global_scores(limit=null, table_id=null, better_than=null, worse_than=null):
+func fetch_global_scores(table_id=null, limit=null, better_than=null, worse_than=null):
 	_call_gj_api('/scores/',
 		{limit = limit, table_id = table_id, better_than = better_than, worse_than = worse_than})
 	pass
@@ -199,27 +202,17 @@ func clear_call_queue():
 	queue.clear()
 
 func _reset():
-	requestError = null
-	responseResult = null
-	responseHeaders = null
-	responseStatus = null
-	responseBody = null
-	jsonParseError = null
-	gameJoltErrorMessage = null
+	requestResult.requestError = null
+	requestResult.responseResult = null
+	requestResult.responseHeaders = null
+	requestResult.responseStatus = null
+	requestResult.responseBody = null
+	requestResult.jsonParseError = null
+	requestResult.gameJoltErrorMessage = null
 
 func _complete_request():
 	busy = false
-	var requestResults = {
-		requestPath = currentType,
-		requestError = requestError,
-		responseResult = responseResult,
-		responseHeaders = responseHeaders,
-		responseStatus = responseStatus,
-		responseBody = responseBody,
-		jsonParseError = jsonParseError,
-		gameJoltErrorMessage = gameJoltErrorMessage
-	}
-	emit_signal('gamejolt_request_completed', requestResults)
+	emit_signal('gamejolt_request_completed', requestResult)
 	_next_call_from_queue()
 
 
@@ -229,10 +222,10 @@ func _call_gj_api(type, parameters):
 		return
 	busy = true
 	_reset()
+	requestResult.requestPath = type
 	var url = _compose_url(type, parameters)
-	currentType = type
-	requestError = request(url)
-	if requestError != OK:
+	requestResult.requestError = request(url)
+	if requestResult.requestError != OK:
 		_complete_request()
 	pass
 
@@ -249,7 +242,7 @@ func _compose_url(urlpath, parameters={}):
 			continue;
 		final_url += '&' + key + '=' + parameter.percent_encode()
 
-	var signature = final_url + private_key
+	var signature = final_url + str(private_key)
 	signature = signature.md5_text()
 	final_url += '&signature=' + signature
 	if verbose:
@@ -261,22 +254,24 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 	if result != OK:
 		_complete_request()
 		return
-	responseResult = result
-	responseStatus = response_code
-	responseHeaders = headers
-	responseBody = body.get_string_from_utf8()
+	requestResult.responseResult = result
+	requestResult.responseStatus = response_code
+	requestResult.responseHeaders = headers
+	requestResult.responseBody = body.get_string_from_utf8()
 	if verbose:
-		_verbose(responseBody)
-	responseBody = JSON.parse(responseBody)
-	jsonParseError = responseBody.error
-	if jsonParseError == OK:
-		responseBody = responseBody.result['response']
-		if responseBody['success'] == 'true':
-			gameJoltErrorMessage = null
+		_verbose(requestResult.responseBody)
+	requestResult.responseBody = JSON.parse(requestResult.responseBody)
+	requestResult.jsonParseError = requestResult.responseBody.error
+	if requestResult.jsonParseError == OK:
+		requestResult.responseBody = requestResult.responseBody.result['response']
+		if requestResult.responseBody['success'] == 'true':
+			requestResult.gameJoltErrorMessage = null
+		elif requestResult.responseBody.has('message'):
+			requestResult.gameJoltErrorMessage = requestResult.responseBody['message']
 		else:
-			gameJoltErrorMessage = responseBody['message']
+			requestResult.gameJoltErrorMessage = ''
 	else:
-		responseBody = null
+		requestResult.responseBody = null
 	_complete_request()
 	pass
 
