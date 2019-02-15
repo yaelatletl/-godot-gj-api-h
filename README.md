@@ -293,3 +293,9 @@ Get a time from the server.
 
 ## 2.2
 * Sample project, which uses plugin.
+
+# Licenses
+
+| Usage | HomePage | License |
+|-|-|-|
+| Font _grundschrift_ for GameJolt sample Godot project | https://fontlibrary.org/pl/font/grundschrift | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
