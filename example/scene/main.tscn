@@ -171,6 +171,7 @@ text = "
 scroll_following = true
 
 [node name="timer_score" type="Timer" parent="."]
+wait_time = 0.5
 one_shot = true
 
 [connection signal="pressed" from="container/auth/noauth/auto_auth" to="." method="_on_auto_auth_pressed"]

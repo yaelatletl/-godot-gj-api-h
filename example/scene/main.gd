@@ -7,26 +7,28 @@ onready var gj=$gj
 var username:String
 var token:String
 var score=0
+var trophy=[]
 func _ready():
 	$container/log_text.set_text("")
 	#use your private key and game id
-	gj.init("privatekey","gameid")
+	gj.init("yourprivatekey","yourgameid")
 	gj.connect("gamejolt_request_completed",self,"_gj_completed")
-
+	
 func _gj_completed(type,message,finished):
 	$container/log_text.text+="\n"+type+str(message)+"\n"
 	if type=="/sessions/open/":
 		if message["success"]:
 			$container/auth/noauth.visible=false
 			$container/auth/welcome_text.set_text("Welcome, "+gj.get_username())
-			
-			gj.fetch_scores(405532, 5, 0, null)
+			gj.fetch_global_scores(10, 405532, 0, null)
 			gj.fetch_data("score", false)
+			gj.fetch_trophy(false, null)
 			$container/trophy/container/button_trophy.disabled=false
 	elif type=="/scores/":
 		if message["success"]:
 			var i=0
 			$container/Leaderboard/container/text_ld.set_text("")
+			print(message["scores"])
 			while message["scores"].size()>i:
 				$container/Leaderboard/container/text_ld.text+="\n"+str(i+1)+") "+message["scores"][i]["user"]+" : "+message["scores"][i]["score"]
 				i+=1
@@ -34,22 +36,30 @@ func _gj_completed(type,message,finished):
 		if message["success"]:
 			gj.set_data("score", score, false)
 			$container/score/container/score_text.set_text("Your score : "+str(score))
-			if score>9:
+			if score>9 and trophy.find(104281)!=-1:
 				gj.set_trophy_achieved(104281)
-			if score>99:
+				trophy.remove(trophy.find(104281))
+			if score>99 and trophy.find(104282)!=-1:
 				gj.set_trophy_achieved(104282)
-			if score>999:
+				trophy.remove(trophy.find(104282))
+			if score>999 and trophy.find(104283)!=-1:
 				gj.set_trophy_achieved(104283)
-			if score>9999:
+				trophy.remove(trophy.find(104283))
+			if score>9999 and trophy.find(104284)!=-1:
 				gj.set_trophy_achieved(104284)
+				trophy.remove(trophy.find(104284))
+			gj.fetch_global_scores(5, 405532, 0, null)
 	elif type=="/data-store/":
 		if message["success"]:
 			score=int(message["data"])
 		$container/score/container/Button.disabled=false
 		$container/score/container/score_text.set_text("Your score : "+str(score))
-		
+	elif type=="/trophies/":
+		if message["success"]:
+			for k in message["trophies"]:
+				trophy.append(k["id"])
+		print(trophy)
 	print("finished: "+str(finished))
-
 
 func _on_auto_auth_pressed():
 	gj.auto_auth()
@@ -70,13 +80,10 @@ func _on_auth_token_text_changed(new_text):
 
 func _on_Button_pressed():
 	score+=1
-	
 	$timer_score.start()
+func _on_button_trophy_pressed():
+	gj.set_trophy_achieved(104280)
 
 
 func _on_timer_score_timeout():
 	gj.add_score(str(score)+" times", score, 405532)
-
-
-func _on_button_trophy_pressed():
-	gj.set_trophy_achieved(104280)
