@@ -18,7 +18,7 @@
 3. Copy files from repositiory to that folder
 4. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
 5. Yay, you've installed the plugin!
-6. To allow Godot to use HTTPS communication append gamejolt.pem file in "Project Settings/Network/SSL/Certificates".
+6. You can check a demo of this plugin here : https://gamejolt.com/games/godotapidemo/399340
 
 **How to use it**
 1. Put the plugin as a Node in your project.
