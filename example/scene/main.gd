@@ -22,7 +22,7 @@ func _gj_completed(type,message,finished):
 			$container/auth/welcome_text.set_text("Welcome, "+gj.get_username())
 			gj.fetch_global_scores(10, 405532, 0, null)
 			gj.fetch_data("score", false)
-			gj.fetch_trophy(false, null)
+			gj.fetch_trophy(null, null)
 			$container/trophy/container/button_trophy.disabled=false
 	elif type=="/scores/":
 		if message["success"]:
@@ -36,18 +36,19 @@ func _gj_completed(type,message,finished):
 		if message["success"]:
 			gj.set_data("score", score, false)
 			$container/score/container/score_text.set_text("Your score : "+str(score))
-			if score>9 and trophy.find(104281)!=-1:
+			if score>9 and trophy.find(104281)==-1:
 				gj.set_trophy_achieved(104281)
-				trophy.remove(trophy.find(104281))
-			if score>99 and trophy.find(104282)!=-1:
+				trophy.append(104281)
+			print(trophy.find(104282))
+			if score>99 and trophy.find(104282)==-1:
 				gj.set_trophy_achieved(104282)
-				trophy.remove(trophy.find(104282))
-			if score>999 and trophy.find(104283)!=-1:
+				trophy.append(104282)
+			if score>999 and trophy.find(104283)==-1:
 				gj.set_trophy_achieved(104283)
-				trophy.remove(trophy.find(104283))
-			if score>9999 and trophy.find(104284)!=-1:
+				trophy.append(104283)
+			if score>9999 and trophy.find(104284)==-1:
 				gj.set_trophy_achieved(104284)
-				trophy.remove(trophy.find(104284))
+				trophy.append(104284)
 			gj.fetch_global_scores(5, 405532, 0, null)
 	elif type=="/data-store/":
 		if message["success"]:
@@ -57,7 +58,8 @@ func _gj_completed(type,message,finished):
 	elif type=="/trophies/":
 		if message["success"]:
 			for k in message["trophies"]:
-				trophy.append(k["id"])
+				if k["achieved"]!="false":
+					trophy.append(k["id"])
 		print(trophy)
 	print("finished: "+str(finished))
 
