@@ -1,5 +1,5 @@
 # GameJolt API plugin for Godot Engine.
-
+![Screenshot](example/fond.png)
 ## About
 **Features**
 * Use GameJolt API in version 1.2
