@@ -1,5 +1,43 @@
-# GameJolt API plugin for Godot Engine.
+# GameJolt highervAPI plugin for Godot Engine.
+##About
+**Features**
+*Utilizing lower API written by rojekabc/
+* Use GameJolt API in version 1.2
+* Godot Engine plugin
+*Auto authentificate in HTML5(contained in lower API)
+*Saving of token and username in encrypted form in Desktop
+*Autopinging sessions
+*Possibility to disable pinging
+* Added states
+* Offline/Online
+```
+is_online()
+```
+- depend on connection to Internet
 
+* Authentificated/ Not Authentificated 
+```
+is_auth()
+```
+- returns true if the user is authentificated
+
+*Visible/Invisible
+```
+is_visible()
+```
+-returns true if autopinging is on
+
+*Active/Idle
+```
+is_active()
+```
+
+-returns true if the player is in active state()
+
+
+
+
+# GameJolt lower API plugin for Godot Engine.
 ## About
 **Features**
 * Use GameJolt API in version 1.2
