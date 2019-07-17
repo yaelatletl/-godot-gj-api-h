@@ -5,10 +5,70 @@
 * Use GameJolt API in version 1.2
 * Godot Engine plugin
 * Auto authentificate in HTML5(contained in lower API)
-* Saving of token and username in encrypted form in Desktop
+* Saving of token and username ~~in encrypted form~~ in Desktop (later encrypted)
 * Autopinging sessions
 * Possibility to disable pinging
 * Added states
+
+**Installing**
+1. Download the repository
+2. Move the _addons_ folder, with _gamejolt_ folder together, to you root folder (res://) of Godot project
+3. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
+4. Yay, you've installed the plugin!
+5. To allow Godot to use HTTPS communication append gamejolt.pem file in "Project Settings/Network/SSL/Certificates".
+
+**How to use it(First way)**
+1. Put the plugin as a Node in your project.
+2. Call the function from the plugin. It'll initiate the request.
+3. When response is received plugin will send the signal gamejolt_request_completed with the results collected in Godot Directory structure.
+4. You may connect to this signal or yield. Now, you can also write all your request directly, there is a queue to process all the requests.
+5. Get the response from the plugin - it's the parsed JSON to godot directory, which is the "response" part from GameJoltAPI.
+
+**How to use it(Second way)**
+1. You can create singleton of the higher.gd script
+2. This way you must connect all signals in script
+
+
+
+## Functions
+
+**Basic**
+
+* Initializate AutoAuth
+```
+init_auto_auth()
+```
+-Automatic authentification will try to auth automaticaly from file or from cache if the game is exported as HTML5 
+
+* Authentificate
+```
+auth(name,token,save)
+auth(name,token)
+```
+-Basic authentification, the save option is boolean and if it is true, the auth will be saved to file
+
+**User Info Package**
+
+* Contains
+-id
+-name
+-avatar_path
+-last_active
+
+* Get Basic User Info
+```
+get_user_info(user_name)
+get_user_info()
+```
+-If no username is passed, returns your info
+
+* Get Friends Info
+```
+get_friends_info()
+```
+return array of user_info of your friends
+
+
 
 **States**
 * Offline/Online
