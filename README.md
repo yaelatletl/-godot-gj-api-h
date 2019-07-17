@@ -9,6 +9,8 @@
 * Autopinging sessions
 * Possibility to disable pinging
 * Added states
+
+**States**
 * Offline/Online
 ```
 is_online()
