@@ -5,10 +5,15 @@
 * Use GameJolt API in version 1.2
 * Godot Engine plugin
 * Auto authentificate in HTML5(contained in lower API)
-* Saving of token and username ~~in encrypted form~~ in Desktop (later encrypted)
+* Saving of token and username in Desktop 
 * Autopinging sessions
 * Possibility to disable pinging
 * Added states
+
+**Planned**
+* encrypted saving of token
+* messaging system
+
 
 **Installing**
 1. Download the repository
