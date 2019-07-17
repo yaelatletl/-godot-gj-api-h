@@ -15,13 +15,13 @@
 ```
 is_online()
 ```
-- depend on connection to Internet
+-depend on connection to Internet
 
 * Authentificated/ Not Authentificated 
 ```
 is_auth()
 ```
-- returns true if the user is authentificated
+-returns true if the user is authentificated
 
 * Visible/Invisible
 ```
@@ -38,8 +38,13 @@ is_active()
 
 
 
+## You can reach lower API 
+```
+get_lower_api()
+```
 
-# GameJolt lower API plugin for Godot Engine.
+
+# GameJolt lower API plugin for Godot Engine. (original README.md)
 ## About
 **Features**
 * Use GameJolt API in version 1.2
