@@ -35,42 +35,42 @@
 
 
 
-## Functions
+# Functions
 
-### Authentification
+## Authentification
 
-#### Initializate AutoAuth
+### Initializate AutoAuth
 ```
 init_auto_auth()
 ```
 *Must be Online*
 -Automatic authentification will try to auth automaticaly from file or from cache if the game is exported as HTML5 
 
-#### Authentificate
+### Authentificate
 ```
 auth(name,token)
 auth(name,token,save)
 auth(name,token,save,autologin) - MAYBE DELETED
 ```
-*Must be Online*
+**Must be Online**
 * Basic authentification, the save option is boolean and if it is true, the auth will be saved to file
 * If autologin is true, next time the user will be authentificated automaticaly
 
-#### Logout
+### Logout
 ```
 logout()
 logout(remove_autoauth)
 ```
-*Must be Authentificated*
+**Must be Authentificated**
 * Delete Authentification
 * if true is passed, autoauth file will be removed
 
-#### Check Connection
+### Check Connection
 ```
 check_connection()
 ```
 -Returns true if connection to GameJolt API exist, return false if not
-### User Info Package
+## User Info Package
 
 **Contains**
 * id
@@ -78,41 +78,41 @@ check_connection()
 * avatar_path
 * last_active
 
-#### Get Basic User Info
+### Get Basic User Info
 ```
 get_user_info(user_name)
 get_user_info(id)
 get_user_info()
 ```
-*Must be Authentificated*
+**Must be Authentificated**
 * username in form of string
 * ID is passed in form of integer
 * If nothing is passed, returns your info
 
-#### Get Friends Info
+### Get Friends Info
 ```
 get_friends_info()
 ```
-*Must be authentificated*
+**Must be Authentificated**
 return array of user_info of your friends
 
-### Scores
-* 
+## Scores
+ Only difference between high level api and low level api is signal controling and restrictions
 
-### State
-#### Offline/Online
+## State
+### Offline/Online
 ```
 is_online()
 ```
 -depend on connection to Internet
 
-#### Authentificated/ Not Authentificated 
+### Authentificated/ Not Authentificated 
 ```
 is_auth()
 ```
 -returns true if the user is authentificated
 
-#### Visible/Invisible
+### Visible/Invisible
 ```
 is_visible()
 ```
@@ -128,7 +128,7 @@ toogle_visible()
 -Must be authentificated
 -functions which change or toogle visible state(visible means api is pinging to gj_api about session)
 
-#### Active/Idle
+### Active/Idle
 ```
 is_active()
 ```
@@ -142,11 +142,11 @@ set_idle()
 
 toogle_active()
 ```
-*Must be visible*
+**Must be visible**
 -functions which change or toogle active and idle state
 
 
-### reaching low level API
+## reaching low level API
 ```
 get_lower_api()
 ```
