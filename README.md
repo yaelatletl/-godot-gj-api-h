@@ -151,6 +151,18 @@ toogle_active()
 get_lower_api()
 ```
 
+
+ Plugin Versions
+
+## 3.0
+* mrpatrik (https://github.com/mrpatrik) create fork.
+* Creating high_level_api and low_level_api folders.
+* Creating high_level_api class
+
+
+
+
+
 # GameJolt low level API plugin for Godot Engine. (rojekabc/ README.md)
 ## About
 **Features**
