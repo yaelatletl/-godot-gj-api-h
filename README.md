@@ -37,16 +37,16 @@
 
 ## Functions
 
-**Authentification**
+### Authentification
 
-* Initializate AutoAuth
+#### Initializate AutoAuth
 ```
 init_auto_auth()
 ```
 -Must be Online
 -Automatic authentification will try to auth automaticaly from file or from cache if the game is exported as HTML5 
 
-* Authentificate
+#### Authentificate
 ```
 auth(name,token)
 auth(name,token,save)
@@ -55,19 +55,20 @@ auth(name,token,save,autologin) - MAYBE DELETED
 -Must be online
 -Basic authentification, the save option is boolean and if it is true, the auth will be saved to file
 -If autologin is true, next time the user will be authentificated automaticaly
-* Logout
+
+#### Logout
 ```
 logout()
 logout(remove_autoauth)
 ```
 -logout from session , if true is passed, autoauth file will be removed, otherwise it wont 
 
-* Check Connection
+#### Check Connection
 ```
 check_connection()
 ```
 -Returns true if connection to GameJolt API exist, return false if not
-**User Info Package**
+### User Info Package
 
 * Contains
 -id
@@ -75,7 +76,7 @@ check_connection()
 -avatar_path
 -last_active
 
-* Get Basic User Info
+#### Get Basic User Info
 ```
 get_user_info(user_name)
 get_user_info(id)
@@ -85,29 +86,30 @@ get_user_info()
 -If no username is passed, returns your info
 -ID is passed in form of integer, username in form of string
 
-* Get Friends Info
+#### Get Friends Info
 ```
 get_friends_info()
 ```
 -Must be authentificated
 return array of user_info of your friends
 
+### Scores
+* 
 
-
-**States**
-* Offline/Online
+### State
+#### Offline/Online
 ```
 is_online()
 ```
 -depend on connection to Internet
 
-* Authentificated/ Not Authentificated 
+#### Authentificated/ Not Authentificated 
 ```
 is_auth()
 ```
 -returns true if the user is authentificated
 
-* Visible/Invisible
+#### Visible/Invisible
 ```
 is_visible()
 ```
@@ -123,7 +125,7 @@ toogle_visible()
 -Must be authentificated
 -functions which change or toogle visible state(visible means api is pinging to gj_api about session)
 
-* Active/Idle
+#### Active/Idle
 ```
 is_active()
 ```
@@ -141,7 +143,7 @@ toogle_active()
 -functions which change or toogle active and idle state
 
 
-**reaching low level API **
+### reaching low level API
 ```
 get_lower_api()
 ```
