@@ -1,5 +1,169 @@
-# GameJolt API plugin for Godot Engine.
+# GameJolt high level API plugin for Godot Engine.
+## About
+**Features**
+* Utilizing lower API written by rojekabc/
+* Use GameJolt API in version 1.2
+* Godot Engine plugin
+* Auto authentificate in HTML5(contained in lower API)
+* Saving of token and username in Desktop 
+* Autopinging sessions
+* Possibility to disable pinging
+* Added states
 
+**Planned**
+* encrypted saving of token
+* messaging system
+
+
+**Installing**
+1. Download the repository
+2. Move the _addons_ folder, with _gamejolt_ folder together, to you root folder (res://) of Godot project
+3. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
+4. Yay, you've installed the plugin!
+5. To allow Godot to use HTTPS communication append gamejolt.pem file in "Project Settings/Network/SSL/Certificates".
+
+**How to use it(First way)**
+1. Put the plugin as a Node in your project.
+2. Call the function from the plugin. It'll initiate the request.
+3. When response is received plugin will send the signal gamejolt_request_completed with the results collected in Godot Directory structure.
+4. You may connect to this signal or yield. Now, you can also write all your request directly, there is a queue to process all the requests.
+5. Get the response from the plugin - it's the parsed JSON to godot directory, which is the "response" part from GameJoltAPI.
+
+**How to use it(Second way)**
+1. You can create singleton of the higher.gd script
+2. This way you must connect all signals in script
+
+
+
+# Functions
+
+## Authentification
+
+### Initializate AutoAuth
+```
+init_auto_auth()
+```
+*Must be Online*
+-Automatic authentification will try to auth automaticaly from file or from cache if the game is exported as HTML5 
+
+### Authentificate
+```
+auth(name,token)
+auth(name,token,save)
+auth(name,token,save,autologin) - MAYBE DELETED
+```
+**Must be Online**
+* Basic authentification, the save option is boolean and if it is true, the auth will be saved to file
+* If autologin is true, next time the user will be authentificated automaticaly
+
+### Logout
+```
+logout()
+logout(remove_autoauth)
+```
+**Must be Authentificated**
+* Delete Authentification
+* if true is passed, autoauth file will be removed
+
+### Check Connection
+```
+check_connection()
+```
+-Returns true if connection to GameJolt API exist, return false if not
+## User Info Package
+
+**Contains**
+* id
+* name
+* avatar_path
+* last_active
+
+### Get Basic User Info
+```
+get_user_info(user_name)
+get_user_info(id)
+get_user_info()
+```
+**Must be Authentificated**
+* username in form of string
+* ID is passed in form of integer
+* If nothing is passed, returns your info
+
+### Get Friends Info
+```
+get_friends_info()
+```
+**Must be Authentificated**
+return array of user_info of your friends
+
+## Scores
+ Only difference between high level api and low level api is signal controling and restrictions
+
+## State
+### Offline/Online
+```
+is_online()
+```
+-depend on connection to Internet
+
+### Authentificated/ Not Authentificated 
+```
+is_auth()
+```
+-returns true if the user is authentificated
+
+### Visible/Invisible
+```
+is_visible()
+```
+-returns true if autopinging is on
+
+```
+set_visible(bool)
+set_visible()
+set_invisible()
+
+toogle_visible()
+```
+-Must be authentificated
+-functions which change or toogle visible state(visible means api is pinging to gj_api about session)
+
+### Active/Idle
+```
+is_active()
+```
+
+-returns true if the player is in active state()
+
+```
+set_active(bool)
+set_active()
+set_idle()
+
+toogle_active()
+```
+**Must be visible**
+-functions which change or toogle active and idle state
+
+
+## reaching low level API
+```
+get_lower_api()
+```
+
+
+ Plugin Versions
+
+## 3.0
+* mrpatrik (https://github.com/mrpatrik) create fork.
+* Creating high_level_api and low_level_api folders.
+* Creating high_level_api class
+
+
+
+
+
+# GameJolt low level API plugin for Godot Engine. (rojekabc/ README.md)
 ## About
 **Features**
 * Use GameJolt API in version 1.2
