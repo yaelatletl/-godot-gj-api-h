@@ -1,4 +1,4 @@
-# GameJolt highervAPI plugin for Godot Engine.
+# GameJolt high level API plugin for Godot Engine.
 ## About
 **Features**
 * Utilizing lower API written by rojekabc/
@@ -37,21 +37,36 @@
 
 ## Functions
 
-**Basic**
+**Authentification**
 
 * Initializate AutoAuth
 ```
 init_auto_auth()
 ```
+-Must be Online
 -Automatic authentification will try to auth automaticaly from file or from cache if the game is exported as HTML5 
 
 * Authentificate
 ```
-auth(name,token,save)
 auth(name,token)
+auth(name,token,save)
+auth(name,token,save,autologin) - MAYBE DELETED
 ```
+-Must be online
 -Basic authentification, the save option is boolean and if it is true, the auth will be saved to file
+-If autologin is true, next time the user will be authentificated automaticaly
+* Logout
+```
+logout()
+logout(remove_autoauth)
+```
+-logout from session , if true is passed, autoauth file will be removed, otherwise it wont 
 
+* Check Connection
+```
+check_connection()
+```
+-Returns true if connection to GameJolt API exist, return false if not
 **User Info Package**
 
 * Contains
@@ -63,14 +78,18 @@ auth(name,token)
 * Get Basic User Info
 ```
 get_user_info(user_name)
+get_user_info(id)
 get_user_info()
 ```
+-Must be Authentificated
 -If no username is passed, returns your info
+-ID is passed in form of integer, username in form of string
 
 * Get Friends Info
 ```
 get_friends_info()
 ```
+-Must be authentificated
 return array of user_info of your friends
 
 
@@ -94,6 +113,16 @@ is_visible()
 ```
 -returns true if autopinging is on
 
+```
+set_visible(bool)
+set_visible()
+set_invisible()
+
+toogle_visible()
+```
+-Must be authentificated
+-functions which change or toogle visible state(visible means api is pinging to gj_api about session)
+
 * Active/Idle
 ```
 is_active()
@@ -101,15 +130,23 @@ is_active()
 
 -returns true if the player is in active state()
 
+```
+set_active(bool)
+set_active()
+set_idle()
+
+toogle_active()
+```
+-Must be visible
+-functions which change or toogle active and idle state
 
 
-## You can reach lower API 
+**reaching low level API **
 ```
 get_lower_api()
 ```
 
-
-# GameJolt lower API plugin for Godot Engine. (original README.md)
+# GameJolt low level API plugin for Godot Engine. (rojekabc/ README.md)
 ## About
 **Features**
 * Use GameJolt API in version 1.2
