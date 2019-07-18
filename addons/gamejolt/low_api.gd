@@ -1,7 +1,8 @@
 extends HTTPRequest
 
 # Original GameJolt Godot plugin by Ackens https://github.com/ackens/-godot-gj-api
-# Fork Gamegolt Godot plugin by rojekabc https://github.com/rojekabc/-godot-gj-api
+# Forked from Gamegolt Godot plugin by rojekabc https://github.com/rojekabc/-godot-gj-api
+# Fork GameJolt Godot Plugin by mrpatrik https://github.com/mrpatrik/-godot-gj-api-h 
 # GameJolt API index page https://gamejolt.com/game-api/doc
 
 const BASE_GAMEJOLT_API_URL = 'https://api.gamejolt.com/api/game/v1_2'
