@@ -43,7 +43,7 @@
 ```
 init_auto_auth()
 ```
--Must be Online
+**Must be Online**
 -Automatic authentification will try to auth automaticaly from file or from cache if the game is exported as HTML5 
 
 #### Authentificate
@@ -52,16 +52,18 @@ auth(name,token)
 auth(name,token,save)
 auth(name,token,save,autologin) - MAYBE DELETED
 ```
--Must be online
--Basic authentification, the save option is boolean and if it is true, the auth will be saved to file
--If autologin is true, next time the user will be authentificated automaticaly
+**Must be Online**
+* Basic authentification, the save option is boolean and if it is true, the auth will be saved to file
+* If autologin is true, next time the user will be authentificated automaticaly
 
 #### Logout
 ```
 logout()
 logout(remove_autoauth)
 ```
--logout from session , if true is passed, autoauth file will be removed, otherwise it wont 
+**Must be Authentificated**
+* Delete Authentification
+* if true is passed, autoauth file will be removed
 
 #### Check Connection
 ```
@@ -82,15 +84,16 @@ get_user_info(user_name)
 get_user_info(id)
 get_user_info()
 ```
--Must be Authentificated
--If no username is passed, returns your info
--ID is passed in form of integer, username in form of string
+**Must be Authentificated**
+* username in form of string
+* ID is passed in form of integer
+* If nothing is passed, returns your info
 
 #### Get Friends Info
 ```
 get_friends_info()
 ```
--Must be authentificated
+**Must be authentificated**
 return array of user_info of your friends
 
 ### Scores
@@ -139,7 +142,7 @@ set_idle()
 
 toogle_active()
 ```
--Must be visible
+**Must be visible**
 -functions which change or toogle active and idle state
 
 
