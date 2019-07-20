@@ -30,21 +30,29 @@ var errorResult = {
 
 enum gj_api_errors{
 	NOCONNECTION = 0,
-	NOAUTH = 1
+	NOAUTH = 1,
+	INCORRECTAUTH = 2,
+	
 }
 
 var error_dict = { }
 
 signal _error(error_code,error_message)
 signal _error_no_connection()
+signal _error_no_auth()
+signal _error_incorrect_auth()
 
 signal _reconnected()
-
+signal _authentificated()
 ##STATES
 var online_c : bool = false
 var auth_c : bool = false
 var visible_c : bool = false
 var active_c : bool = false
+
+#cache
+var username_c :String = ""
+var token_c:String = ""
 
 
 
@@ -70,8 +78,9 @@ func init(m_game_id=null,m_private_key=null):
 	low_api.init(game_id,private_key)
 	
 	#INIT ERRORS
-	_append_error(gj_api_errors.NOCONNECTION,"_error_no_connection","No Connection","e_noconnection")
-	
+	_append_error(gj_api_errors.NOCONNECTION, "_error_no_connection", "No Connection","e_noconnection")
+	_append_error(gj_api_errors.NOAUTH, "_error_no_auth","Not Authentificated", "e_noauth")
+	_append_error(gj_api_errors.INCORRECTAUTH, "_error_incorrect_auth", "Incorrect Authentification","e_incorrectauth")
 	
 	# Connecting l-api signal request completed to h-api function
 	low_api.connect("gamejolt_request_completed",self,"gamejolt_request_completed")
@@ -82,6 +91,14 @@ func init(m_game_id=null,m_private_key=null):
 	response_timer.one_shot=true
 	response_timer.connect("timeout",self,"response_timeout")
 	add_child(response_timer)
+	
+	#Initializing autopinger
+	autoping_timer.wait_time = autoping_time
+	autoping_timer.one_shot = false
+	autoping_timer.connect("timeout",self,"autopinger_ping")
+	add_child(autoping_timer)
+	
+	
 	#Check connection for the first time
 	check_connection()
 
@@ -90,9 +107,13 @@ func gamejolt_request_completed(requestResults):
 	if requestResults.requestError == 404:
 		no_connection()
 	else:
+		# On reconneting
 		if !online_c :
 			on_reconnect()
-			
+		
+		if requestResults.requestPath == "/users/auth/" :
+			auth_response(requestResults)
+	
 	pass
 	
 func on_reconnect():
@@ -101,7 +122,7 @@ func on_reconnect():
 	
 func no_connection():
 	online_c = false
-	_error(gj_api_errors.NOCONNECTION)
+	_throw_error(gj_api_errors.NOCONNECTION)
 
 
 func emit_no_connection_response():
@@ -110,13 +131,11 @@ func emit_no_connection_response():
 
 
 func _append_error(code,signal_name,output_text,tr_output):
-	var error_instance = error_class.new(signal_name,output_text,tr_output)
-	error_dict[code] = error_instance
-	
+	error_dict[code] = error_class.new(signal_name,output_text,tr_output)
 	pass
 
 #Error function
-func _error(error):
+func _throw_error(error):
 	
 	emit_signal(error_dict[error].signal_name)
 	
@@ -126,7 +145,8 @@ func _error(error):
 	else:
 		emit_signal("_error",error,error_dict[error].output_text)
 	pass
-	
+	if verbose_level>0:
+		print("ERROR ",int(error),": ",error_dict[error].signal_name)
 	
 
 func check_connection():
@@ -144,9 +164,52 @@ func is_online():
 	return online_c
 	pass
 
+# returns true if the iser is authentificated
 func is_auth():
+	if !auth_c:
+		_throw_error(gj_api_errors.NOAUTH)
+	return auth_c
+	pass
+
+#sett cache for auth data without proving 
+func set_auth_data(username,token):
+	username_c = username
+	token_c = token
 	
 	pass
+	#Authentificate, 
+	#you can set username and token but you doesnt have to 
+	#Also sending auth request
+func auth(username = "",token = ""):
+	if username != "":
+		username_c = username
+	if token != "":
+		token_c = token
+	#Firstly chech username and token
+	if username_c == "" or token_c == "" :
+		_throw_error(gj_api_errors.INCORRECTAUTH)
+		return
+	#Then check if is online
+	if !is_online() :
+		_throw_error(gj_api_errors.INCORRECTAUTH)
+		return
+	low_api.auth_user(username_c,token_c)
+	pass
+
+func auth_response(responseBody):
+	if responseBody.responseBody["success"] == "true" :
+		auth_c = true
+		emit_signal("_authentificated")
+	else:
+		_throw_error(gj_api_errors.INCORRECTAUTH)
+	pass
+
+#AUTOPINGER
+func autopinger_ping():
+	
+	pass
+
+
 
 
 ##REQUEST SENDED AND REQUEST RECIEVED  - 

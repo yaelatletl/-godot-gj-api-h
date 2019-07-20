@@ -4,7 +4,7 @@
 [ext_resource path="res://addons/gamejolt/gj_icon.png" type="Texture" id=2]
 
 [sub_resource type="GDScript" id=1]
-script/source = "extends GridContainer
+script/source = "extends VBoxContainer
 
 
 # Called when the node enters the scene tree for the first time.
@@ -16,31 +16,91 @@ func _ready():
 
 
 func _on_Try_Connect_pressed():
-	$Label.text = str($HighGameJoltAPI.is_online())
+	$Connect/TryConnect_label.text = str($HighGameJoltAPI.is_online())
 	
 	pass 
 
 
-func _on_HighGameJoltAPI_error(error_code, error_message):
-	$Label.text = error_message
-	pass # Replace with function body.
 
 
 
 func _on_HighGameJoltAPI__reconnected():
-	$Label.text = \"Reconnected\"
+	$Error_label.text = \"Reconnected\"
+	pass # Replace with function body.
+
+
+func _on_Auth_pressed():
+	var username = $Auth/username.text
+	var token = $Auth/token.text
+	$HighGameJoltAPI.auth(username,token)
+	pass # Replace with function body.
+
+
+func _on_HighGameJoltAPI__error(error_code, error_message):
+	$Error_label.text = error_message
+	pass # Replace with function body.
+
+
+func _on_HighGameJoltAPI__authentificated():
+	$Auth/Auth_label.text = \"Authentificated\"
 	pass # Replace with function body.
 "
 
-[node name="GridContainer" type="GridContainer"]
-margin_right = 40.0
-margin_bottom = 40.0
+[node name="VBoxContainer" type="VBoxContainer"]
+margin_left = 73.0
+margin_top = 48.0
+margin_right = 73.0
+margin_bottom = 62.0
 script = SubResource( 1 )
 
-[node name="Try_Connect" type="Button" parent="."]
+[node name="Connect" type="HBoxContainer" parent="."]
+margin_right = 308.0
+margin_bottom = 20.0
+
+[node name="Try_Connect" type="Button" parent="Connect"]
 margin_right = 69.0
 margin_bottom = 20.0
 text = "is_online"
+
+[node name="TryConnect_label" type="Label" parent="Connect"]
+margin_left = 73.0
+margin_top = 3.0
+margin_right = 73.0
+margin_bottom = 17.0
+
+[node name="Auth" type="HBoxContainer" parent="."]
+margin_top = 24.0
+margin_right = 308.0
+margin_bottom = 48.0
+
+[node name="username" type="LineEdit" parent="Auth"]
+margin_right = 128.0
+margin_bottom = 24.0
+rect_min_size = Vector2( 128, 0 )
+
+[node name="token" type="LineEdit" parent="Auth"]
+margin_left = 132.0
+margin_right = 260.0
+margin_bottom = 24.0
+rect_min_size = Vector2( 128, 0 )
+secret = true
+
+[node name="Auth" type="Button" parent="Auth"]
+margin_left = 264.0
+margin_right = 304.0
+margin_bottom = 24.0
+text = "auth"
+
+[node name="Auth_label" type="Label" parent="Auth"]
+margin_left = 308.0
+margin_top = 5.0
+margin_right = 308.0
+margin_bottom = 19.0
+
+[node name="Error_label" type="Label" parent="."]
+margin_top = 52.0
+margin_right = 308.0
+margin_bottom = 66.0
 
 [node name="HighGameJoltAPI" type="Node" parent="."]
 script = ExtResource( 1 )
@@ -50,11 +110,7 @@ __meta__ = {
 game_id = "426069"
 private_key = "2c87d739f66ea196de8a6392e62c9d54"
 verbose_level = 3
-
-[node name="Label" type="Label" parent="."]
-margin_top = 24.0
-margin_right = 69.0
-margin_bottom = 38.0
-[connection signal="pressed" from="Try_Connect" to="." method="_on_Try_Connect_pressed"]
-[connection signal="_error" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI_error"]
-[connection signal="_reconnected" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI__reconnected"]
+[connection signal="pressed" from="Connect/Try_Connect" to="." method="_on_Try_Connect_pressed"]
+[connection signal="pressed" from="Auth/Auth" to="." method="_on_Auth_pressed"]
+[connection signal="_authentificated" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI__authentificated"]
+[connection signal="_error" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI__error"]
