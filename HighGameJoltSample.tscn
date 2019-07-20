@@ -25,6 +25,11 @@ func _on_HighGameJoltAPI_error(error_code, error_message):
 	$Label.text = error_message
 	pass # Replace with function body.
 
+
+
+func _on_HighGameJoltAPI__reconnected():
+	$Label.text = \"Reconnected\"
+	pass # Replace with function body.
 "
 
 [node name="GridContainer" type="GridContainer"]
@@ -52,3 +57,4 @@ margin_right = 69.0
 margin_bottom = 38.0
 [connection signal="pressed" from="Try_Connect" to="." method="_on_Try_Connect_pressed"]
 [connection signal="_error" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI_error"]
+[connection signal="_reconnected" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI__reconnected"]

@@ -38,13 +38,14 @@ var error_dict = { }
 signal _error(error_code,error_message)
 signal _error_no_connection()
 
+signal _reconnected()
+
 ##STATES
 var online_c : bool = false
 var auth_c : bool = false
 var visible_c : bool = false
 var active_c : bool = false
 
-# Is true when we are waiting for connection response
 
 
 # Called when the node enters the scene tree for the first time.
@@ -89,14 +90,19 @@ func gamejolt_request_completed(requestResults):
 	if requestResults.requestError == 404:
 		no_connection()
 	else:
-		online_c = true
+		if !online_c :
+			on_reconnect()
 			
 	pass
 	
+func on_reconnect():
+	online_c=true
+	emit_signal("_reconnected")
 	
 func no_connection():
 	online_c = false
 	_error(gj_api_errors.NOCONNECTION)
+
 
 func emit_no_connection_response():
 	low_api.emit_signal("gamejolt_request_completed",errorResult)
@@ -104,17 +110,15 @@ func emit_no_connection_response():
 
 
 func _append_error(code,signal_name,output_text,tr_output):
-	var error_instance = error_class.new()
-	error_instance.init(signal_name,output_text,tr_output)
+	var error_instance = error_class.new(signal_name,output_text,tr_output)
 	error_dict[code] = error_instance
 	
 	pass
 
 #Error function
 func _error(error):
-	match error:
-		gj_api_errors.NOCONNECTION:
-			emit_signal(error_dict[error].signal_name)
+	
+	emit_signal(error_dict[error].signal_name)
 	
 	#If errors are translated, before sending them, translate them
 	if translated:
@@ -122,10 +126,12 @@ func _error(error):
 	else:
 		emit_signal("_error",error,error_dict[error].output_text)
 	pass
+	
+	
 
 func check_connection():
 	##Just send fetch_time
-	# Rest id handled in gamejolt_request_completed
+	# Rest is handled in gamejolt_request_completed
 	
 	low_api.fetch_time()
 	request_sended()
@@ -143,8 +149,8 @@ func is_auth():
 	pass
 
 
-##REQUEST SENDED AND REQUEST RECIEVED  - Function which are used, when there is problems
-
+##REQUEST SENDED AND REQUEST RECIEVED  - 
+#Functions which are used, when there is problem with response
 func request_sended():
 	response_timer.start()
 	pass
