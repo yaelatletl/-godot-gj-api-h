@@ -16,8 +16,13 @@ _global_script_class_icons={
 [application]
 
 config/name="Godot GameJolt API Sample"
-run/main_scene="res://GameJoltSample.tscn"
+run/main_scene="res://HighGameJoltSample.tscn"
 config/icon="res://icon.png"
+
+[debug]
+
+gdscript/warnings/unused_variable=false
+gdscript/warnings/unused_class_variable=false
 
 [editor_plugins]
 

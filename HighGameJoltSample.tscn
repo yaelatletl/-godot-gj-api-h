@@ -1,0 +1,54 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://addons/gamejolt/high_api.gd" type="Script" id=1]
+[ext_resource path="res://addons/gamejolt/gj_icon.png" type="Texture" id=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends GridContainer
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	
+	pass 
+
+
+
+
+func _on_Try_Connect_pressed():
+	$Label.text = str($HighGameJoltAPI.is_online())
+	
+	pass 
+
+
+func _on_HighGameJoltAPI_error(error_code, error_message):
+	$Label.text = error_message
+	pass # Replace with function body.
+
+"
+
+[node name="GridContainer" type="GridContainer"]
+margin_right = 40.0
+margin_bottom = 40.0
+script = SubResource( 1 )
+
+[node name="Try_Connect" type="Button" parent="."]
+margin_right = 69.0
+margin_bottom = 20.0
+text = "is_online"
+
+[node name="HighGameJoltAPI" type="Node" parent="."]
+script = ExtResource( 1 )
+__meta__ = {
+"_editor_icon": ExtResource( 2 )
+}
+game_id = "426069"
+private_key = "2c87d739f66ea196de8a6392e62c9d54"
+verbose_level = 3
+
+[node name="Label" type="Label" parent="."]
+margin_top = 24.0
+margin_right = 69.0
+margin_bottom = 38.0
+[connection signal="pressed" from="Try_Connect" to="." method="_on_Try_Connect_pressed"]
+[connection signal="_error" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI_error"]

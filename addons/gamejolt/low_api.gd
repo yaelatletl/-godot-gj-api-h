@@ -12,7 +12,6 @@ export(String) var game_id
 export(bool) var verbose = false
 
 signal gamejolt_request_completed(requestResults)
-
 var username_cache
 var token_cache
 var busy = false
@@ -253,6 +252,7 @@ func _compose_url(urlpath, parameters={}):
 	
 func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 	if result != OK:
+		requestResult.requestError = 404
 		_complete_request()
 		return
 	requestResult.responseResult = result
