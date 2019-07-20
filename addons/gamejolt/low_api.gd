@@ -16,6 +16,7 @@ var username_cache
 var token_cache
 var busy = false
 var queue = []
+var status_cache = true
 
 var requestResult = {
 	requestPath = null,
@@ -67,7 +68,7 @@ func open_session():
 	
 func ping_session():
 	_call_gj_api('/sessions/ping/',
-		{username = username_cache, user_token = token_cache})
+		{username = username_cache, user_token = token_cache,status = status_cache})
 	pass
 	
 func close_session():

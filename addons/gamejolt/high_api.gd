@@ -44,6 +44,7 @@ signal _error_incorrect_auth()
 
 signal _reconnected()
 signal _authentificated()
+signal _deauthentificated()
 ##STATES
 var online_c : bool = false
 var auth_c : bool = false
@@ -119,10 +120,12 @@ func gamejolt_request_completed(requestResults):
 func on_reconnect():
 	online_c=true
 	emit_signal("_reconnected")
+	change_autoping()
 	
 func no_connection():
 	online_c = false
 	_throw_error(gj_api_errors.NOCONNECTION)
+	change_autoping()
 
 
 func emit_no_connection_response():
@@ -164,7 +167,7 @@ func is_online():
 	return online_c
 	pass
 
-# returns true if the iser is authentificated
+# returns true if the user is authentificated
 func is_auth():
 	if !auth_c:
 		_throw_error(gj_api_errors.NOAUTH)
@@ -180,11 +183,14 @@ func set_auth_data(username,token):
 	#Authentificate, 
 	#you can set username and token but you doesnt have to 
 	#Also sending auth request
-func auth(username = "",token = ""):
+func auth(username = "",token = "",active = true):
 	if username != "":
-		username_c = username
+		set_username(username)
 	if token != "":
-		token_c = token
+		set_token(token)
+		
+	# set visibility
+	set_visible(active)
 	#Firstly chech username and token
 	if username_c == "" or token_c == "" :
 		_throw_error(gj_api_errors.INCORRECTAUTH)
@@ -196,6 +202,11 @@ func auth(username = "",token = ""):
 	low_api.auth_user(username_c,token_c)
 	pass
 
+func deauth():
+	auth_c = false
+	set_username("")
+	set_token("")
+	
 func auth_response(responseBody):
 	if responseBody.responseBody["success"] == "true" :
 		auth_c = true
@@ -204,13 +215,37 @@ func auth_response(responseBody):
 		_throw_error(gj_api_errors.INCORRECTAUTH)
 	pass
 
+
+
+#Visibility
+
+func is_visible():
+	return visible_c
+
 #AUTOPINGER
 func autopinger_ping():
-	
+	if is_online() and is_auth() and is_visible():
+		low_api.ping_session()
 	pass
 
 
+func set_visible(visible):
+	visible_c = visible
+	change_autoping()
 
+func change_autoping():
+	if is_online() and is_auth() and is_visible():
+		autoping_timer.start()
+	else:
+		autoping_timer.stop()
+
+func set_active(active):
+	active_c = active
+	
+	if active:
+		low_api.status_cache = "active"
+	else:
+		low_api.status_cache = "idle"
 
 ##REQUEST SENDED AND REQUEST RECIEVED  - 
 #Functions which are used, when there is problem with response
@@ -224,3 +259,20 @@ func request_recieved():
 
 func response_timeout():
 	emit_no_connection_response()
+
+
+# set basic functions	
+func set_username(username):
+	username_c = username
+	low_api.username_cache = username_c
+	pass
+
+func set_token(token):
+	token_c = token
+	low_api.token_cache = token_c
+	
+	
+	# close connection when quiting
+func _notification(what):
+    if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST:
+        low_api.close_session()
