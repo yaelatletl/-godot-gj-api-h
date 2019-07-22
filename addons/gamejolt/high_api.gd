@@ -54,6 +54,7 @@ var active_c : bool = false
 #cache
 var username_c :String = ""
 var token_c:String = ""
+var session_c = false
 
 
 
@@ -114,6 +115,8 @@ func gamejolt_request_completed(requestResults):
 		
 		if requestResults.requestPath == "/users/auth/" :
 			auth_response(requestResults)
+		if "/sessions" in requestResults.requestPath:
+			session_response(requestResults)
 	
 	pass
 	
@@ -210,6 +213,12 @@ func deauth():
 func auth_response(responseBody):
 	if responseBody.responseBody["success"] == "true" :
 		auth_c = true
+		if visible_c:
+			print("Open Session")
+			print(auth_c)
+			open_session()
+			change_autoping()
+		
 		emit_signal("_authentificated")
 	else:
 		_throw_error(gj_api_errors.INCORRECTAUTH)
@@ -224,11 +233,30 @@ func is_visible():
 
 #AUTOPINGER
 func autopinger_ping():
+	print("ping")
 	if is_online() and is_auth() and is_visible():
 		low_api.ping_session()
 	pass
 
+func open_session():
+	if is_online() and is_auth() and is_visible():
+		low_api.open_session()
 
+func close_session():
+	if is_online() and is_auth() and is_visible():
+		low_api.close_session()
+
+func check_session():
+	low_api.check_session()
+	
+func session_response(requestResults):
+	if "ping" in requestResults.requestPath:
+		pass
+	pass
+
+func ping_session():
+	low_api.ping_session()
+	
 func set_visible(visible):
 	visible_c = visible
 	change_autoping()
