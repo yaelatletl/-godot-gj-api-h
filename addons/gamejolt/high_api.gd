@@ -8,6 +8,9 @@ export(bool) var translated = false
 export(int,0,4) var verbose_level = 0
 #MAX traffic difference before the no_connection function is called
 export(int,2,60) var max_waiting_time = 5
+export(bool) var overwrite_session = true
+export(bool) var throw_no_auth_error = true
+
 
 var low_api =preload("res://addons/gamejolt/low_api.tscn").instance()
 
@@ -32,30 +35,38 @@ enum gj_api_errors{
 	NOCONNECTION = 0,
 	NOAUTH = 1,
 	INCORRECTAUTH = 2,
+	INVALIDINPUT = 3
 	
 }
 
 var error_dict = { }
 
-signal _error(error_code,error_message)
-signal _error_no_connection()
-signal _error_no_auth()
-signal _error_incorrect_auth()
+signal error(error_code,error_message)
+signal error_no_connection()
+signal error_no_auth()
+signal error_incorrect_auth()
+signal error_invalid_input()
 
-signal _reconnected()
-signal _authentificated()
-signal _deauthentificated()
+signal reconnected()
+signal authentificated()
+signal deauthentificated()
+signal auth_change(auth)
+
+
 ##STATES
-var online_c : bool = false
+var online_c : bool = true
 var auth_c : bool = false
-var visible_c : bool = false
-var active_c : bool = false
+var visible_c : bool = true
+var active_c : bool = true
 
 #cache
 var username_c :String = ""
 var token_c:String = ""
 var session_c = false
 
+#Autopinger PING variables
+var last_succesfull_ping_unix = 0
+ 
 
 
 # Called when the node enters the scene tree for the first time.
@@ -80,10 +91,10 @@ func init(m_game_id=null,m_private_key=null):
 	low_api.init(game_id,private_key)
 	
 	#INIT ERRORS
-	_append_error(gj_api_errors.NOCONNECTION, "_error_no_connection", "No Connection","e_noconnection")
-	_append_error(gj_api_errors.NOAUTH, "_error_no_auth","Not Authentificated", "e_noauth")
-	_append_error(gj_api_errors.INCORRECTAUTH, "_error_incorrect_auth", "Incorrect Authentification","e_incorrectauth")
-	
+	_append_error(gj_api_errors.NOCONNECTION, "error_no_connection", "No Connection","e_noconnection")
+	_append_error(gj_api_errors.NOAUTH, "error_no_auth","Not Authentificated", "e_noauth")
+	_append_error(gj_api_errors.INCORRECTAUTH, "error_incorrect_auth", "Incorrect Authentification","e_incorrectauth")
+	_append_error(gj_api_errors.INVALIDINPUT, "error_invalid_input", "Invalid input", "e_invalidinput")
 	# Connecting l-api signal request completed to h-api function
 	low_api.connect("gamejolt_request_completed",self,"gamejolt_request_completed")
 	add_child(low_api)
@@ -102,27 +113,31 @@ func init(m_game_id=null,m_private_key=null):
 	
 	
 	#Check connection for the first time
-	check_connection()
+	check_online()
 
 func gamejolt_request_completed(requestResults):
-	request_recieved()
+	if verbose_level>0:
+		request_recieved()
+		
 	if requestResults.requestError == 404:
 		no_connection()
 	else:
+		print(requestResults.requestPath)
 		# On reconneting
 		if !online_c :
 			on_reconnect()
-		
 		if requestResults.requestPath == "/users/auth/" :
 			auth_response(requestResults)
+			
 		if "/sessions" in requestResults.requestPath:
 			session_response(requestResults)
+			
 	
 	pass
 	
 func on_reconnect():
 	online_c=true
-	emit_signal("_reconnected")
+	emit_signal("reconnected")
 	change_autoping()
 	
 func no_connection():
@@ -147,9 +162,9 @@ func _throw_error(error):
 	
 	#If errors are translated, before sending them, translate them
 	if translated:
-		emit_signal("_error",error,tr(error_dict[error].tr_output))
+		emit_signal("error",error,tr(error_dict[error].tr_output))
 	else:
-		emit_signal("_error",error,error_dict[error].output_text)
+		emit_signal("error",error,error_dict[error].output_text)
 	pass
 	if verbose_level>0:
 		print("ERROR ",int(error),": ",error_dict[error].signal_name)
@@ -166,14 +181,20 @@ func check_connection():
 
 #returns true if it is connected to internet
 func is_online():
+	return online_c
+	pass
+	
+	# THe same as previous but also it send a request 
+func check_online():
 	check_connection()
 	return online_c
 	pass
 
 # returns true if the user is authentificated
-func is_auth():
+func is_auth( throw_error = throw_no_auth_error):
 	if !auth_c:
-		_throw_error(gj_api_errors.NOAUTH)
+		if throw_error:
+			_throw_error(gj_api_errors.NOAUTH)
 	return auth_c
 	pass
 
@@ -193,10 +214,11 @@ func auth(username = "",token = "",active = true):
 		set_token(token)
 		
 	# set visibility
-	set_visible(active)
+	# THis way to not start change_autoping which is called after the response and authnetification
+	visible_c = active
 	#Firstly chech username and token
 	if username_c == "" or token_c == "" :
-		_throw_error(gj_api_errors.INCORRECTAUTH)
+		_throw_error(gj_api_errors.INVALIDINPUT)
 		return
 	#Then check if is online
 	if !is_online() :
@@ -206,20 +228,28 @@ func auth(username = "",token = "",active = true):
 	pass
 
 func deauth():
+	close_session()
 	auth_c = false
 	set_username("")
 	set_token("")
+	emit_signal("deauthentificated")
+	emit_signal("auth_change",false)
 	
+	#Response from low api to authetification
 func auth_response(responseBody):
 	if responseBody.responseBody["success"] == "true" :
 		auth_c = true
-		if visible_c:
-			print("Open Session")
-			print(auth_c)
-			open_session()
-			change_autoping()
+		#if visible_c:
+		#	open_session()
 		
-		emit_signal("_authentificated")
+		emit_signal("authentificated")
+		emit_signal("auth_change",true)
+		#start autpinger
+		change_autoping()
+		
+		#First autopinger - open connection -BUG 
+		#if is_visible():
+		#	autopinger_ping()
 	else:
 		_throw_error(gj_api_errors.INCORRECTAUTH)
 	pass
@@ -232,40 +262,85 @@ func is_visible():
 	return visible_c
 
 #AUTOPINGER
+
+#Autopinger timer timeout method
 func autopinger_ping():
-	print("ping")
 	if is_online() and is_auth() and is_visible():
-		low_api.ping_session()
+		if is_pinged():
+			ping_session()
+			
+		else:
+			open_session()
+			
+		
+	else:
+		autoping_timer.stop()
 	pass
 
+
+# Open session 
 func open_session():
 	if is_online() and is_auth() and is_visible():
 		low_api.open_session()
+		if verbose_level>0:
+				print("Session - Open")
 
+
+
+
+
+# #Close session
 func close_session():
 	if is_online() and is_auth() and is_visible():
 		low_api.close_session()
+		if verbose_level>0:
+				print("Session - Close")
 
+# Low session
 func check_session():
 	low_api.check_session()
 	
+	# Response for pinging sessions
 func session_response(requestResults):
+	if requestResults.responseBody["success"] !="true":
+		print("error")
+		return
+		
 	if "ping" in requestResults.requestPath:
-		pass
+		last_succesfull_ping_unix = OS.get_unix_time()
+	
+	if "open" in requestResults.requestPath:
+		last_succesfull_ping_unix = OS.get_unix_time()
+	
 	pass
 
 func ping_session():
 	low_api.ping_session()
+	if verbose_level>0:
+				print("Session - Ping")
 	
 func set_visible(visible):
 	visible_c = visible
 	change_autoping()
+
+func toggle_visible():
+	visible_c = !visible_c
+	change_autoping()
+	
 
 func change_autoping():
 	if is_online() and is_auth() and is_visible():
 		autoping_timer.start()
 	else:
 		autoping_timer.stop()
+		if is_pinged():
+			close_session()
+
+func is_pinged():
+	if last_succesfull_ping_unix + 120  > OS.get_unix_time():
+		return true
+	else:
+		return false
 
 func set_active(active):
 	active_c = active

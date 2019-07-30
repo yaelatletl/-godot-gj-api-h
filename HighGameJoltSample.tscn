@@ -7,11 +7,6 @@
 script/source = "extends VBoxContainer
 
 
-# Called when the node enters the scene tree for the first time.
-func _ready():
-	
-	pass 
-
 
 
 
@@ -24,7 +19,7 @@ func _on_Try_Connect_pressed():
 
 
 
-func _on_HighGameJoltAPI__reconnected():
+func _on_HighGameJoltAPI_reconnected():
 	$Error_label.text = \"Reconnected\"
 	pass # Replace with function body.
 
@@ -36,12 +31,12 @@ func _on_Auth_pressed():
 	pass # Replace with function body.
 
 
-func _on_HighGameJoltAPI__error(error_code, error_message):
+func _on_HighGameJoltAPI_error(error_code, error_message):
 	$Error_label.text = error_message
 	pass # Replace with function body.
 
 
-func _on_HighGameJoltAPI__authentificated():
+func _on_HighGameJoltAPI_authentificated():
 	$Auth/Auth_label.text = \"Authentificated\"
 	pass # Replace with function body.
 
@@ -53,6 +48,15 @@ func _on_try_auth_pressed():
 
 func _on_deauth_pressed():
 	$HighGameJoltAPI.deauth()
+	pass # Replace with function body.
+
+
+
+
+
+
+func _on_Toggle_visible_pressed():
+	$HighGameJoltAPI.toggle_visible()
 	pass # Replace with function body.
 "
 
@@ -129,10 +133,21 @@ margin_top = 5.0
 margin_right = 308.0
 margin_bottom = 19.0
 
-[node name="Error_label" type="Label" parent="."]
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
 margin_top = 76.0
 margin_right = 308.0
-margin_bottom = 90.0
+margin_bottom = 96.0
+
+[node name="Toggle_visible" type="Button" parent="HBoxContainer"]
+margin_right = 100.0
+margin_bottom = 20.0
+toggle_mode = true
+text = "Toggle Visible"
+
+[node name="Error_label" type="Label" parent="."]
+margin_top = 100.0
+margin_right = 308.0
+margin_bottom = 114.0
 
 [node name="HighGameJoltAPI" type="Node" parent="."]
 script = ExtResource( 1 )
@@ -146,5 +161,7 @@ verbose_level = 2
 [connection signal="pressed" from="auth/try_auth" to="." method="_on_try_auth_pressed"]
 [connection signal="pressed" from="auth/deauth" to="." method="_on_deauth_pressed"]
 [connection signal="pressed" from="Auth/Auth" to="." method="_on_Auth_pressed"]
-[connection signal="_authentificated" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI__authentificated"]
-[connection signal="_error" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI__error"]
+[connection signal="pressed" from="HBoxContainer/Toggle_visible" to="." method="_on_Toggle_visible_pressed"]
+[connection signal="authentificated" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI_authentificated"]
+[connection signal="error" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI_error"]
+[connection signal="reconnected" from="HighGameJoltAPI" to="." method="_on_HighGameJoltAPI_reconnected"]
