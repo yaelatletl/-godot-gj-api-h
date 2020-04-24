@@ -31,6 +31,7 @@ enabled=PoolStringArray( "gamejolt_api_v2" )
 
 [rendering]
 
+quality/driver/driver_name="GLES2"
 quality/intended_usage/framebuffer_allocation=0
 quality/intended_usage/framebuffer_allocation.mobile=1
 environment/default_environment="res://default_env.tres"

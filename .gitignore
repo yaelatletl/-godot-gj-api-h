@@ -1,4 +1,8 @@
 # vim files
 *~
 .*~
-
+# Godot-specific ignores
+.import/
+export/
+export.cfg
+export_presets.cfg

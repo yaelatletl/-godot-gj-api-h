@@ -25,10 +25,13 @@ margin_top = 64.0
 margin_right = -64.0
 custom_constants/vseparation = 32
 custom_constants/hseparation = 32
-columns = 4
+columns = 3
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="auth" type="PanelContainer" parent="container"]
-margin_right = 200.0
+margin_right = 277.0
 margin_bottom = 200.0
 rect_min_size = Vector2( 200, 200 )
 size_flags_horizontal = 7
@@ -36,52 +39,52 @@ size_flags_horizontal = 7
 [node name="noauth" type="VBoxContainer" parent="container/auth"]
 margin_left = 7.0
 margin_top = 7.0
-margin_right = 193.0
+margin_right = 270.0
 margin_bottom = 193.0
 rect_min_size = Vector2( 100, 100 )
 custom_constants/separation = 16
 
 [node name="auth_text" type="Label" parent="container/auth/noauth"]
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 14.0
 text = "Authentification"
 
 [node name="auto_auth" type="Button" parent="container/auth/noauth"]
 margin_top = 30.0
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 50.0
 text = "Auto auth"
 
 [node name="auth_name" type="LineEdit" parent="container/auth/noauth"]
 margin_top = 66.0
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 90.0
 placeholder_text = "Name"
 
 [node name="auth_token" type="LineEdit" parent="container/auth/noauth"]
 margin_top = 106.0
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 130.0
 secret = true
 placeholder_text = "Token"
 
 [node name="normal_auth" type="Button" parent="container/auth/noauth"]
 margin_top = 146.0
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 166.0
 text = "Normal auth"
 
 [node name="welcome_text" type="Label" parent="container/auth"]
 margin_left = 7.0
 margin_top = 93.0
-margin_right = 193.0
+margin_right = 270.0
 margin_bottom = 107.0
 align = 1
 valign = 1
 
 [node name="score" type="PanelContainer" parent="container"]
-margin_left = 232.0
-margin_right = 432.0
+margin_left = 309.0
+margin_right = 586.0
 margin_bottom = 200.0
 rect_min_size = Vector2( 200, 200 )
 size_flags_horizontal = 7
@@ -89,31 +92,31 @@ size_flags_horizontal = 7
 [node name="container" type="VBoxContainer" parent="container/score"]
 margin_left = 7.0
 margin_top = 7.0
-margin_right = 193.0
+margin_right = 270.0
 margin_bottom = 193.0
+size_flags_vertical = 7
 custom_constants/separation = 16
 
 [node name="text" type="Label" parent="container/score/container"]
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 14.0
 text = "Score"
 
 [node name="Button" type="Button" parent="container/score/container"]
 margin_top = 30.0
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 50.0
 disabled = true
 text = "Add +1 to score"
 
 [node name="score_text" type="Label" parent="container/score/container"]
 margin_top = 66.0
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 80.0
-text = "Your score : 0"
 
 [node name="trophy" type="PanelContainer" parent="container"]
-margin_left = 464.0
-margin_right = 664.0
+margin_left = 618.0
+margin_right = 895.0
 margin_bottom = 200.0
 rect_min_size = Vector2( 200, 200 )
 size_flags_horizontal = 7
@@ -121,59 +124,78 @@ size_flags_horizontal = 7
 [node name="container" type="VBoxContainer" parent="container/trophy"]
 margin_left = 7.0
 margin_top = 7.0
-margin_right = 193.0
+margin_right = 270.0
 margin_bottom = 193.0
 custom_constants/separation = 16
 
 [node name="text" type="Label" parent="container/trophy/container"]
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 14.0
 text = "Trophy"
 
 [node name="button_trophy" type="Button" parent="container/trophy/container"]
 margin_top = 30.0
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 50.0
 disabled = true
 text = "add me a trophy"
 
+[node name="trophies" type="Label" parent="container/trophy/container"]
+margin_top = 66.0
+margin_right = 263.0
+margin_bottom = 80.0
+
 [node name="Leaderboard" type="PanelContainer" parent="container"]
-margin_left = 696.0
-margin_right = 896.0
-margin_bottom = 200.0
+margin_top = 232.0
+margin_right = 277.0
+margin_bottom = 432.0
 rect_min_size = Vector2( 200, 200 )
 size_flags_horizontal = 7
 
 [node name="container" type="VBoxContainer" parent="container/Leaderboard"]
 margin_left = 7.0
 margin_top = 7.0
-margin_right = 193.0
+margin_right = 270.0
 margin_bottom = 193.0
 custom_constants/separation = 16
 
 [node name="text" type="Label" parent="container/Leaderboard/container"]
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 14.0
 text = "The clicker champions"
 
 [node name="text_ld" type="Label" parent="container/Leaderboard/container"]
 margin_top = 30.0
-margin_right = 186.0
+margin_right = 263.0
 margin_bottom = 44.0
 
-[node name="log_text" type="RichTextLabel" parent="container"]
+[node name="Control" type="Control" parent="container"]
+margin_left = 309.0
 margin_top = 232.0
-margin_right = 200.0
+margin_right = 586.0
+margin_bottom = 432.0
+
+[node name="log_text" type="RichTextLabel" parent="container"]
+margin_left = 618.0
+margin_top = 232.0
+margin_right = 895.0
 margin_bottom = 432.0
 rect_min_size = Vector2( 0, 200 )
 text = "
 "
 scroll_following = true
 
+[node name="Panel" type="Panel" parent="container/log_text"]
+show_behind_parent = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
 [node name="timer_score" type="Timer" parent="."]
 wait_time = 0.5
 one_shot = true
-
 [connection signal="pressed" from="container/auth/noauth/auto_auth" to="." method="_on_auto_auth_pressed"]
 [connection signal="text_changed" from="container/auth/noauth/auth_name" to="." method="_on_auth_name_text_changed"]
 [connection signal="text_changed" from="container/auth/noauth/auth_token" to="." method="_on_auth_token_text_changed"]
