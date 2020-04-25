@@ -8,7 +8,7 @@
 * Allow to verbose mode to see direct communication
 * URLs are percent encoded
 * Use HTTPS communication with GameJolt API
-* For Godot 3.*.*
+* For Godot 3+
 * One common singal on end of request
 * Many point of checking response
 
