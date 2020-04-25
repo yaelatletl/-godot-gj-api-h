@@ -35,7 +35,7 @@
 
 `auto_auth()`
 
-Authenticates the user who plays the game. It works only with html5 games on Gamejolt
+Authenticates the user who plays the game. It works only with html5 games on Gamejolt.
 
 `auth_user(token, username)`
 
