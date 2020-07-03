@@ -4,41 +4,53 @@ extends Control
 # Project/Settings/Plugins -> set gamejolt api active
 #Add a node GameJoltAPI or use it with a composition in a singleton(better for a game project)
 onready var gj:=$gj
+onready var container:=$container
+onready var log_text:=$container/cont_log/log_text
+onready var score_text:=$container/score/container/score_text
+onready var ld_text:=$container/Leaderboard/container/text_ld
+onready var welcome_text:=$container/auth/welcome_text
+onready var trophies:=$container/trophy/container/trophies
+onready var button_trophy:=$container/trophy/container/button_trophy
+
 var username:String
 var token:String
 var score:=0
 var last_score:=0
 var trophy:=[]
+
+var wait_update:=false
+
 func _ready():
-	$container/log_text.set_text("")
+	log_text.set_text("")
 	#use your private key and game id
-	gj.init("39078c091715a8cb581a5c67c8d60aef","399340")
+	gj.init("private_key","game_id")
 	gj.connect("gamejolt_request_completed",self,"_gj_completed")
 	
 func _gj_completed(type,message,finished):
-	$container/log_text.text+="\n"+type+str(message)+"\n"
+	log_text.text+="\n"+type+str(message)+"\n"
 	if type=="/sessions/open/":
 		if message["success"]:
 			$container/auth/noauth.visible=false
-			$container/auth/welcome_text.set_text("Welcome, "+gj.get_username())
+			welcome_text.set_text("Welcome, "+gj.get_username())
 			gj.fetch_global_scores(8, 405532, 0, null)
 			gj.fetch_data("score", false)
 			gj.fetch_trophy(null, null)
-			$container/score/container/score_text.set_text("Loading your score...")
+			score_text.set_text("Loading your score...")
 			
 	elif type=="/scores/":
 		if message["success"]:
 			var i=0
-			$container/Leaderboard/container/text_ld.set_text("")
+			ld_text.set_text("")
 			print(message["scores"])
 			while message["scores"].size()>i:
-				$container/Leaderboard/container/text_ld.text+="\n"+str(i+1)+") "+message["scores"][i]["user"]+" : "+message["scores"][i]["score"]
+				ld_text.text+="\n"+str(i+1)+") "+message["scores"][i]["user"]+" : "+message["scores"][i]["score"]
 				i+=1
 	elif type=='/scores/add/':
 		if message["success"]:
 			last_score=score
+			
 			gj.set_data("score", score, false)
-			$container/score/container/score_text.set_text("Your score : "+str(score)+"\nSaved!")
+			score_text.set_text("Your score : "+str(score)+"\nSaved!")
 			if score>9 and trophy.find(104281)==-1:
 				gj.set_trophy_achieved(104281)
 				trophy.append(104281)
@@ -58,24 +70,25 @@ func _gj_completed(type,message,finished):
 				gj.set_trophy_achieved(104347)
 				trophy.append(104347)
 			gj.fetch_global_scores(8, 405532, 0, null)
+		wait_update=false
 	elif type=="/data-store/":
 		if message["success"]:
 			score=int(message["data"])
 			last_score=score
 		$container/score/container/Button.disabled=false
-		$container/score/container/score_text.set_text("Your score : "+str(score))
+		score_text.set_text("Your score : "+str(score))
 	elif type=="/trophies/":
-		$container/trophy/container/button_trophy.disabled=false
-		$container/trophy/container/trophies.text=""
+		button_trophy.disabled=false
+		trophies.text=""
 		if message["success"]:
 			for k in message["trophies"]:
 				print(k["achieved"])
 				if k["achieved"]!="false":
 					trophy.append(k["id"])
-					$container/trophy/container/trophies.text+=k["title"]+" :UNLOCKED\n"
+					trophies.text+=k["title"]+" :UNLOCKED\n"
 					if k["id"]=="104280":
-						$container/trophy/container/button_trophy.text="Already Unlocked"
-						$container/trophy/container/button_trophy.disabled=true
+						button_trophy.text="Already Unlocked"
+						button_trophy.disabled=true
 		print(trophy)
 		
 	print("finished: "+str(finished))
@@ -99,11 +112,11 @@ func _on_auth_token_text_changed(new_text):
 
 func _on_Button_pressed():
 	score+=1
-	$container/score/container/score_text.set_text("Your score : "+str(last_score)+"+"+str(score-last_score)+"\nNot saved")
-	$timer_score.start()
+	score_text.set_text("Your score : "+str(last_score)+"+"+str(score-last_score)+"\nNot saved")
+	if !wait_update:
+		wait_update=true
+		gj.add_score(str(score)+" times", score, 405532)
+		
 func _on_button_trophy_pressed():
 	gj.set_trophy_achieved(104280)
 
-
-func _on_timer_score_timeout():
-	gj.add_score(str(score)+" times", score, 405532)
