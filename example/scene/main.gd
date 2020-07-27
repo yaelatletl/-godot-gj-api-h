@@ -20,10 +20,12 @@ var trophy:=[]
 
 var wait_update:=false
 
+var auth = Auth.new()
+
 func _ready():
 	log_text.set_text("")
 	#use your private key and game id
-	gj.init("private_key","game_id")
+	gj.init(auth.private_key,auth.game_id)
 	gj.connect("gamejolt_request_completed",self,"_gj_completed")
 	
 func _gj_completed(type,message,finished):

@@ -8,9 +8,20 @@
 
 config_version=4
 
-_global_script_classes=[  ]
+_global_script_classes=[ {
+"base": "Node",
+"class": "Auth",
+"language": "GDScript",
+"path": "res://script/auth.gd"
+}, {
+"base": "Node",
+"class": "AuthTemplate",
+"language": "GDScript",
+"path": "res://script/auth_template.gd"
+} ]
 _global_script_class_icons={
-
+"Auth": "",
+"AuthTemplate": ""
 }
 
 [application]
