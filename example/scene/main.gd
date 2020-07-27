@@ -20,6 +20,7 @@ var trophy:=[]
 
 var wait_update:=false
 
+# The auth file isn't share online because it contains my private key, see script/auth_template.gd
 var auth = Auth.new()
 
 func _ready():
