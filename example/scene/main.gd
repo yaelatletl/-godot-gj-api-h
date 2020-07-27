@@ -32,6 +32,7 @@ func _gj_completed(type,message,finished):
 	log_text.text+="\n"+type+str(message)+"\n"
 	if type=="/sessions/open/":
 		if message["success"]:
+			# You well logged
 			$container/auth/noauth.visible=false
 			welcome_text.set_text("Welcome, "+gj.get_username())
 			gj.fetch_global_scores(8, 405532, 0, null)
@@ -41,6 +42,7 @@ func _gj_completed(type,message,finished):
 			
 	elif type=="/scores/":
 		if message["success"]:
+			# fetched scores
 			var i=0
 			ld_text.set_text("")
 			print(message["scores"])
@@ -49,8 +51,8 @@ func _gj_completed(type,message,finished):
 				i+=1
 	elif type=='/scores/add/':
 		if message["success"]:
+			# added scores
 			last_score=score
-			
 			gj.set_data("score", score, false)
 			score_text.set_text("Your score : "+str(score)+"\nSaved!")
 			if score>9 and trophy.find(104281)==-1:
@@ -75,14 +77,20 @@ func _gj_completed(type,message,finished):
 		wait_update=false
 	elif type=="/data-store/":
 		if message["success"]:
+			#fetched data
 			score=int(message["data"])
 			last_score=score
 		$container/score/container/Button.disabled=false
 		score_text.set_text("Your score : "+str(score))
+	elif type=="/data-store/set/":
+		if message["success"]:
+			#You well stored your data
+			pass
 	elif type=="/trophies/":
 		button_trophy.disabled=false
 		trophies.text=""
 		if message["success"]:
+			#fetched trophies
 			for k in message["trophies"]:
 				print(k["achieved"])
 				if k["achieved"]!="false":
