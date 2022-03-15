@@ -7,14 +7,14 @@ const BASE_GAMEJOLT_API_URL = 'https://api.gamejolt.com/api/game/v1_2'
 
 export(String) var private_key
 export(String) var game_id
-export(bool) var verbose=true
+export(bool) var verbose:bool = false
 
 signal gamejolt_request_completed(type,message,finished)
 
-var username_cache
-var token_cache
-var busy = false
-var queue=[]
+var username_cache:String
+var token_cache:String
+var busy:bool = false
+var queue:Array = []
 var requestError = null
 var responseResult = null
 var responseBody = null
@@ -23,22 +23,26 @@ var responseStatus = null
 var jsonParseError = null
 var gameJoltErrorMessage = null
 var lasttype=[]
+
 func init(pk,gi):
 	private_key=pk
 	game_id=gi
+	
 func _ready():
 	connect("request_completed", self, '_on_HTTPRequest_request_completed')
-	pass
+	
 func auto_auth():
 	#get username and token form url on gamejolt (only work with html5)
-	var url=str(JavaScript.eval("window.location.href"))
-	var tmp = url.split('gjapi_username=')
-	if tmp.size()>1:
-		username_cache=tmp[1].split("&")[0]
-		token_cache=tmp[1].split("gjapi_token=")[1]
-		_call_gj_api('/users/auth/', {user_token = token_cache, username = username_cache})
-	else:
-		print("not html5 game on gamejolt")
+	#For Godot debugging, add this in your url : ?gjapi_username=<yourusername>&gjapi_token=<yourtoken>
+	JavaScript.eval('var urlParams = new URLSearchParams(window.location.search);',true)
+	var tmp = JavaScript.eval('urlParams.get("gjapi_username")', true)
+	if tmp is String:
+		username_cache = tmp
+		tmp = JavaScript.eval('urlParams.get("gjapi_token")', true)
+		if tmp is String:
+			token_cache = tmp
+			_call_gj_api('/users/auth/', {user_token = token_cache, username = username_cache})
+	
 func auth_user(username, token):
 	_call_gj_api('/users/auth/', {user_token = token, username = username})
 	username_cache = username
