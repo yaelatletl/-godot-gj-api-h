@@ -1,5 +1,5 @@
 # GameJolt API plugin for Godot Engine.
-![Screenshot](example/fond.png)
+![Screenshot](https://github.com/deakcor/godot-gamejolt-api-demo/blob/main/example/fond.png)
 ## About
 **Features**
 * Use GameJolt API in version 1.2
@@ -15,10 +15,10 @@
 **Installing**
 1. Download the repository
 2. Create the "addons/gamejolt" folder in the root (res://) of your project
-3. Copy files from repositiory to that folder
+3. Copy files from repositiory to that folder (By downloading, git clone or submodule if your project use git)
 4. In the project settings, head to the "Plugins" tab and activate the plugin by changing its state from "Inactive" to "Active"
 5. Yay, you've installed the plugin!
-6. You can check a demo of this plugin here : https://gamejolt.com/games/godotapidemo/399340
+6. You can check [a demo of this plugin](https://github.com/deakcor/godot-gamejolt-api-demo)
 
 **How to use it**
 1. Put the plugin as a Node in your project.
