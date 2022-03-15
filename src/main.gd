@@ -216,7 +216,7 @@ func _call_gj_api(type, parameters):
 	lasttype.append(type)
 	requestError = request(url)
 	if requestError != OK:
-		print(requestError)
+		busy = false
 	pass
 
 func _compose_url(urlpath, parameters={}):
@@ -247,7 +247,7 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 		_call_gj_api(queue[0][0], queue[0][1])
 		queue.pop_front()
 	if result != OK:
-		emit_signal('gamejolt_request_completed',lasttype,{"success":false},true if size==0 else false)
+		emit_signal('gamejolt_request_completed',lasttype,{"success":false},size==0)
 		return
 	responseResult = result
 	responseStatus = response_code
@@ -267,7 +267,7 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 			responseBody['success']=false
 	else:
 		responseBody = null
-	emit_signal('gamejolt_request_completed',lasttype[0],responseBody,true if size==0 else false)
+	emit_signal('gamejolt_request_completed',lasttype[0],responseBody,size==0)
 	lasttype.pop_front()
 	pass # replace with function body
 
