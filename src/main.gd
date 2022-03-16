@@ -238,6 +238,10 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, response_
 	else:
 		var body:String = response_body.get_string_from_utf8()
 		
+		# Prepare for json parsing
+		body = body.replace("'true'","true")
+		body = body.replace("'false'","false")
+		
 		if verbose:
 			_verbose(body)
 			
@@ -246,10 +250,6 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, response_
 		if json_result.error == OK:
 			response = json_result.result.get('response',{})
 			response['success'] = response.get('success',false)
-			if response['success'] == 'true':
-				response['success']=true
-			else:
-				response['success']=false
 
 		emit_signal('gamejolt_request_completed',last_type,response)
 	
