@@ -9,20 +9,21 @@ export(String) var private_key
 export(String) var game_id
 export(bool) var verbose:bool = false
 
-signal gamejolt_request_completed(type,message,finished)
+signal gamejolt_request_completed(type,message)
 
 var username_cache:String
 var token_cache:String
 var busy:bool = false
 var queue:Array = []
-var requestError = null
-var responseResult = null
-var responseBody = null
-var responseHeaders = null
-var responseStatus = null
-var jsonParseError = null
-var gameJoltErrorMessage = null
-var lasttype=[]
+var lasttype:Array=[]
+
+class RequestQueue:
+	var type:String
+	var parameters:Dictionary
+	
+	func _init(new_type:String,new_parameters:Dictionary):
+		type = new_type
+		parameters = new_parameters
 
 # public
 
@@ -195,44 +196,17 @@ func fetch_time():
 func _ready():
 	connect("request_completed", self, '_on_HTTPRequest_request_completed')
 
-# returns true if request execution was positive and response is received
-func is_ok():
-	return (
-		(requestError == OK) and
-		(responseResult == RESULT_SUCCESS) and
-		(responseStatus >= 200) and
-		(responseStatus < 300) and
-		(jsonParseError == OK) and
-		(gameJoltErrorMessage == null)
-	)
-
-func print_error():
-	print('GameJolt error.'
-	 + ' RequestError: ' + str(requestError)
-	 + ' ResponseResult: ' + str(responseResult)
-	 + ' JsonParseError: ' + str(jsonParseError)
-	 + ' GameJoltErrorMessage: ' + str(gameJoltErrorMessage))
-
-func _reset():
-	requestError = null
-	responseResult = null
-	responseHeaders = null
-	responseStatus = null
-	responseBody = null
-	jsonParseError = null
-	gameJoltErrorMessage = null
-
-func _call_gj_api(type, parameters):
+func _call_gj_api(type:String, parameters:Dictionary):
+	var request_error := OK
 	if busy:
-		requestError = ERR_BUSY
-		queue.append([type,parameters])
+		request_error = ERR_BUSY
+		queue.push_back(RequestQueue.new(type,parameters))
 		return
 	busy = true
-	_reset()
 	var url = _compose_url(type, parameters)
-	lasttype.append(type)
-	requestError = request(url)
-	if requestError != OK:
+	lasttype.push_back(type)
+	request_error = request(url)
+	if request_error != OK:
 		busy = false
 	pass
 
@@ -257,35 +231,33 @@ func _compose_url(urlpath, parameters={}):
 	return final_url
 	pass
 	
-func _on_HTTPRequest_request_completed(result, response_code, headers, body):
+func _on_HTTPRequest_request_completed(result, response_code, headers, response_body):
 	busy = false
-	var size=queue.size()
-	if size!=0:
-		_call_gj_api(queue[0][0], queue[0][1])
-		queue.pop_front()
+	
+	if !queue.empty():
+		var request_queued :RequestQueue = queue.pop_front()
+		_call_gj_api(request_queued.type, request_queued.parameters)
+		
 	if result != OK:
-		emit_signal('gamejolt_request_completed',lasttype,{"success":false},size==0)
+		emit_signal('gamejolt_request_completed',lasttype,{"success":false})
 		return
-	responseResult = result
-	responseStatus = response_code
-	responseHeaders = headers
-	responseBody = body.get_string_from_utf8()
+		
+	var body:String = response_body.get_string_from_utf8()
+	
 	if verbose:
-		_verbose(responseBody)
-	responseBody = JSON.parse(responseBody)
-	jsonParseError = responseBody.error
-	if jsonParseError == OK:
-		responseBody = responseBody.result.get('response',{})
-		responseBody['success'] = responseBody.get('success',false)
-		if responseBody['success'] == 'true':
-			gameJoltErrorMessage = null
-			responseBody['success']=true
+		_verbose(body)
+		
+	var json_result = JSON.parse(body)
+	var response:Dictionary = {}
+	if json_result.error == OK:
+		response = json_result.result.get('response',{})
+		response['success'] = response.get('success',false)
+		if response['success'] == 'true':
+			response['success']=true
 		else:
-			gameJoltErrorMessage = responseBody.get('message','')
-			responseBody['success']=false
-	else:
-		responseBody = null
-	emit_signal('gamejolt_request_completed',lasttype[0],responseBody,size==0)
+			response['success']=false
+
+	emit_signal('gamejolt_request_completed',lasttype[0],response)
 	lasttype.pop_front()
 	pass # replace with function body
 
