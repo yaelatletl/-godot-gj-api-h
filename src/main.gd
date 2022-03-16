@@ -3,10 +3,10 @@ extends HTTPRequest
 # GameJolt Godot plugin by Ackens https://github.com/ackens/-godot-gj-api
 # GameJolt API index page https://gamejolt.com/game-api/doc
 
-const BASE_GAMEJOLT_API_URL = 'https://api.gamejolt.com/api/game/v1_2'
+const BASE_GAMEJOLT_API_URL:String = 'https://api.gamejolt.com/api/game/v1_2'
 
-export(String) var private_key
-export(String) var game_id
+export(String) var private_key:String
+export(String) var game_id:String
 export(bool) var verbose:bool = false
 
 signal gamejolt_request_completed(type,message)
@@ -210,8 +210,8 @@ func _call_gj_api(type:String, parameters:Dictionary):
 		busy = false
 	pass
 
-func _compose_url(urlpath, parameters={}):
-	var final_url = BASE_GAMEJOLT_API_URL + urlpath
+func _compose_url(url_path:String, parameters:Dictionary={}):
+	var final_url:String = BASE_GAMEJOLT_API_URL + url_path
 	final_url += '?game_id=' + str(game_id)
 
 	for key in parameters.keys():
@@ -223,7 +223,7 @@ func _compose_url(urlpath, parameters={}):
 			continue;
 		final_url += '&' + key + '=' + parameter.percent_encode()
 
-	var signature = final_url + private_key
+	var signature:String = final_url + private_key
 	signature = signature.md5_text()
 	final_url += '&signature=' + signature
 	if verbose:
@@ -233,32 +233,31 @@ func _compose_url(urlpath, parameters={}):
 	
 func _on_HTTPRequest_request_completed(result, response_code, headers, response_body):
 	
+	if result != OK:
+		emit_signal('gamejolt_request_completed',last_type,{"success":false})
+	else:
+		var body:String = response_body.get_string_from_utf8()
+		
+		if verbose:
+			_verbose(body)
+			
+		var json_result = JSON.parse(body)
+		var response:Dictionary = {}
+		if json_result.error == OK:
+			response = json_result.result.get('response',{})
+			response['success'] = response.get('success',false)
+			if response['success'] == 'true':
+				response['success']=true
+			else:
+				response['success']=false
+
+		emit_signal('gamejolt_request_completed',last_type,response)
+	
+	busy = false
+	
 	if !queue.empty():
 		var request_queued :RequestQueue = queue.pop_front()
 		_call_gj_api(request_queued.type, request_queued.parameters)
-		
-	if result != OK:
-		emit_signal('gamejolt_request_completed',last_type,{"success":false})
-		return
-		
-	var body:String = response_body.get_string_from_utf8()
-	
-	if verbose:
-		_verbose(body)
-		
-	var json_result = JSON.parse(body)
-	var response:Dictionary = {}
-	if json_result.error == OK:
-		response = json_result.result.get('response',{})
-		response['success'] = response.get('success',false)
-		if response['success'] == 'true':
-			response['success']=true
-		else:
-			response['success']=false
-
-	emit_signal('gamejolt_request_completed',last_type,response)
-	
-	busy = false
 
 func _verbose(message):
 	if verbose:
