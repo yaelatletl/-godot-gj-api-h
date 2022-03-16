@@ -7,6 +7,7 @@ const BASE_GAMEJOLT_API_URL:String = 'https://api.gamejolt.com/api/game/v1_2'
 
 export(String) var private_key:String
 export(String) var game_id:String
+export(bool) var auto_batch := true #Merge queued requests in one batch
 export(bool) var verbose:bool = false
 
 signal gamejolt_request_completed(type,message)
@@ -15,15 +16,17 @@ var username_cache:String
 var token_cache:String
 var busy:bool = false
 var queue:Array = []
-var last_type:String
+var current_request:Request
 
-class RequestQueue:
+class Request:
 	var type:String
 	var parameters:Dictionary
+	var sub_types:Array
 	
-	func _init(new_type:String,new_parameters:Dictionary):
+	func _init(new_type:String,new_parameters:Dictionary,new_sub_types:Array = []):
 		type = new_type
 		parameters = new_parameters
+		sub_types = new_sub_types
 
 # public
 
@@ -191,38 +194,65 @@ func fetch_time():
 	_call_gj_api('/time/',{})
 	pass
 
+### BATCH
+
+#Put array of Request class
+func batch_request(requests:Array,parallel:bool=true,break_on_error:bool=false):
+	var requests_url:Array = []
+	var sub_types:Array = []
+	for request in requests:
+		sub_types.push_back(request.type)
+		requests_url.push_back(_compose_url(request.type, request.parameters,true))
+	_call_gj_api('/batch/',{requests = requests, parallel = parallel, break_on_error = break_on_error}, sub_types)
+	pass
+
 # private
 
 func _ready():
 	connect("request_completed", self, '_on_HTTPRequest_request_completed')
 
-func _call_gj_api(type:String, parameters:Dictionary):
+func _call_gj_api(type:String, parameters:Dictionary, sub_types:Array = []):
 	var request_error := OK
 	if busy:
 		request_error = ERR_BUSY
-		queue.push_back(RequestQueue.new(type,parameters))
+		if auto_batch and type != '/batch/':
+			var url:String = _compose_url(type, parameters, true)
+			if queue.empty() or queue.back().type != '/batch/' or queue.back().sub_types.size()>=50:
+				queue.push_back(Request.new('/batch/',{requests = [url]},[type]))
+			else:
+				queue.back().parameters.requests.push_back(url)
+				queue.back().sub_types.push_back(type)
+		else:
+			queue.push_back(Request.new(type,parameters,sub_types))
 		return
 	busy = true
-	var url = _compose_url(type, parameters)
-	last_type = type
+	var url:String = _compose_url(type, parameters)
+	current_request = Request.new(type,parameters,sub_types)
 	request_error = request(url)
 	if request_error != OK:
 		busy = false
 	pass
 
-func _compose_url(url_path:String, parameters:Dictionary={}):
-	var final_url:String = BASE_GAMEJOLT_API_URL + url_path
+func _compose_param(parameter,key:String):
+	parameter = str(parameter)
+	if parameter.empty():
+		return ""
+	return '&' + key + '=' + parameter.percent_encode()
+	
+func _compose_url(url_path:String, parameters:Dictionary={}, sub_request := false)->String:
+	var final_url:String = ("" if sub_request else BASE_GAMEJOLT_API_URL) + url_path
 	final_url += '?game_id=' + str(game_id)
 
 	for key in parameters.keys():
 		var parameter = parameters[key]
 		if parameter == null:
 			continue
-		parameter = str(parameter)
-		if parameter.empty():
-			continue;
-		final_url += '&' + key + '=' + parameter.percent_encode()
-
+		if parameter is Array:
+			for p in parameter:
+				final_url += _compose_param(p,key+"[]")
+		else:
+			final_url += _compose_param(parameter,key)
+			
 	var signature:String = final_url + private_key
 	signature = signature.md5_text()
 	final_url += '&signature=' + signature
@@ -234,7 +264,7 @@ func _compose_url(url_path:String, parameters:Dictionary={}):
 func _on_HTTPRequest_request_completed(result, response_code, headers, response_body):
 	
 	if result != OK:
-		emit_signal('gamejolt_request_completed',last_type,{"success":false})
+		emit_signal('gamejolt_request_completed',current_request.type,{"success":false})
 	else:
 		var body:String = response_body.get_string_from_utf8()
 		
@@ -249,16 +279,21 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, response_
 		var response:Dictionary = {}
 		if json_result.error == OK:
 			response = json_result.result.get('response',{})
-			response['success'] = response.get('success',false)
+		response['success'] = response.get('success',false)
 
-		emit_signal('gamejolt_request_completed',last_type,response)
-	
+		emit_signal('gamejolt_request_completed',current_request.type,response)
+		
+		if response.has("responses"):
+			for k in response["responses"].size():
+				if current_request.sub_types.size()>k:
+					emit_signal('gamejolt_request_completed',current_request.sub_types[k],response["responses"][k])
+		
 	busy = false
 	
 	if !queue.empty():
-		var request_queued :RequestQueue = queue.pop_front()
-		_call_gj_api(request_queued.type, request_queued.parameters)
+		var request_queued :Request = queue.pop_front()
+		_call_gj_api(request_queued.type, request_queued.parameters, request_queued.sub_types)
 
 func _verbose(message):
 	if verbose:
-		print('[GAMEJOLT] ' + message)
+		print('[GAMEJOLT] ' , message)
