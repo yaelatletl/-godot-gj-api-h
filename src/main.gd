@@ -24,13 +24,22 @@ var jsonParseError = null
 var gameJoltErrorMessage = null
 var lasttype=[]
 
-func init(pk,gi):
+# public
+
+func init(pk:String,gi:String):
 	private_key=pk
 	game_id=gi
+
+### USERS
+
+func get_username():
+	return username_cache
+	pass
 	
-func _ready():
-	connect("request_completed", self, '_on_HTTPRequest_request_completed')
-	
+func get_user_token():
+	return token_cache
+	pass
+
 func auto_auth():
 	#get username and token form url on gamejolt (only work with html5)
 	#For Godot debugging, add this in your url : ?gjapi_username=<yourusername>&gjapi_token=<yourtoken>
@@ -42,27 +51,29 @@ func auto_auth():
 		if tmp is String:
 			token_cache = tmp
 			_call_gj_api('/users/auth/', {user_token = token_cache, username = username_cache})
-	
-func auth_user(username, token):
+
+func auth_user(username:String, token:String):
 	_call_gj_api('/users/auth/', {user_token = token, username = username})
 	username_cache = username
 	token_cache = token
 	pass
-	
-func fetch_user(username=null, id=0):
+
+func fetch_user(username=null, id:int=0):
 	_call_gj_api('/users/', {username = username, user_id = id})
 	pass
-	
+
 func fetch_friends():
 	_call_gj_api('/friends/',
 		{username = username_cache, user_token = token_cache})
 	pass
-	
+
+### SESSIONS
+
 func open_session():
 	_call_gj_api('/sessions/open/',
 		{username = username_cache, user_token = token_cache})
 	pass
-	
+
 func ping_session():
 	_call_gj_api('/sessions/ping/',
 		{username = username_cache, user_token = token_cache})
@@ -78,21 +89,7 @@ func check_session():
 		{username = username_cache, user_token = token_cache})
 	pass
 	
-func fetch_trophy(achieved=null, trophy_ids=null):
-	_call_gj_api('/trophies/',
-		{username = username_cache, user_token = token_cache, achieved = achieved, trophy_id = trophy_ids})
-	pass
-	
-func set_trophy_achieved(trophy_id):
-	if username_cache!=null:
-		_call_gj_api('/trophies/add-achieved/',
-			{username = username_cache, user_token = token_cache, trophy_id = trophy_id})
-		pass
-	
-func remove_trophy_achieved(trophy_id):
-	_call_gj_api('/trophies/remove-achieved/',
-		{username = username_cache, user_token = token_cache, trophy_id = trophy_id})
-	pass
+### SCORES
 
 func fetch_scores(table_id=null, limit=null, better_than=null, worse_than=null):
 	_call_gj_api('/scores/',
@@ -108,7 +105,7 @@ func fetch_global_scores(limit=null, table_id=null, better_than=null, worse_than
 	_call_gj_api('/scores/',
 		{limit = limit, table_id = table_id, better_than = better_than, worse_than = worse_than})
 	pass
-	
+
 func add_score(score, sort, table_id=null):
 	if username_cache!=null:
 		_call_gj_api('/scores/add/',
@@ -127,6 +124,27 @@ func fetch_score_rank(sort, table_id=null):
 func fetch_tables():
 	_call_gj_api('/scores/tables/',{})
 	pass
+
+### TROPHIES
+
+func fetch_trophy(achieved=null, trophy_ids=null):
+	_call_gj_api('/trophies/',
+		{username = username_cache, user_token = token_cache, achieved = achieved, trophy_id = trophy_ids})
+	pass
+	
+func set_trophy_achieved(trophy_id):
+	if username_cache!=null:
+		_call_gj_api('/trophies/add-achieved/',
+			{username = username_cache, user_token = token_cache, trophy_id = trophy_id})
+		pass
+	
+func remove_trophy_achieved(trophy_id):
+	_call_gj_api('/trophies/remove-achieved/',
+		{username = username_cache, user_token = token_cache, trophy_id = trophy_id})
+	pass
+	
+### DATA STORE
+
 	
 func fetch_data(key, global=true):
 	if global:
@@ -165,18 +183,17 @@ func get_data_keys(pattern=null, global=true):
 		_call_gj_api('/data-store/get-keys/',
 			{username = username_cache, user_token = token_cache, pattern = pattern})
 	pass
-	
+
+### TIME
+
 func fetch_time():
 	_call_gj_api('/time/',{})
 	pass
 
-func get_username():
-	return username_cache
-	pass
-	
-func get_user_token():
-	return token_cache
-	pass
+# private
+
+func _ready():
+	connect("request_completed", self, '_on_HTTPRequest_request_completed')
 
 # returns true if request execution was positive and response is received
 func is_ok():
