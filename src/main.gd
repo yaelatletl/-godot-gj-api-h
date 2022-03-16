@@ -258,12 +258,13 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 	responseBody = JSON.parse(responseBody)
 	jsonParseError = responseBody.error
 	if jsonParseError == OK:
-		responseBody = responseBody.result['response']
+		responseBody = responseBody.result.get('response',{})
+		responseBody['success'] = responseBody.get('success',false)
 		if responseBody['success'] == 'true':
 			gameJoltErrorMessage = null
 			responseBody['success']=true
 		else:
-			gameJoltErrorMessage = responseBody['message']
+			gameJoltErrorMessage = responseBody.get('message','')
 			responseBody['success']=false
 	else:
 		responseBody = null
