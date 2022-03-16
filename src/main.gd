@@ -239,8 +239,8 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, response_
 		var body:String = response_body.get_string_from_utf8()
 		
 		# Prepare for json parsing
-		body = body.replace("'true'","true")
-		body = body.replace("'false'","false")
+		body = body.replace('"true"',"true")
+		body = body.replace('"false"',"false")
 		
 		if verbose:
 			_verbose(body)
