@@ -15,7 +15,7 @@ var username_cache:String
 var token_cache:String
 var busy:bool = false
 var queue:Array = []
-var lasttype:Array=[]
+var last_type:String
 
 class RequestQueue:
 	var type:String
@@ -204,7 +204,7 @@ func _call_gj_api(type:String, parameters:Dictionary):
 		return
 	busy = true
 	var url = _compose_url(type, parameters)
-	lasttype.push_back(type)
+	last_type = type
 	request_error = request(url)
 	if request_error != OK:
 		busy = false
@@ -232,14 +232,13 @@ func _compose_url(urlpath, parameters={}):
 	pass
 	
 func _on_HTTPRequest_request_completed(result, response_code, headers, response_body):
-	busy = false
 	
 	if !queue.empty():
 		var request_queued :RequestQueue = queue.pop_front()
 		_call_gj_api(request_queued.type, request_queued.parameters)
 		
 	if result != OK:
-		emit_signal('gamejolt_request_completed',lasttype,{"success":false})
+		emit_signal('gamejolt_request_completed',last_type,{"success":false})
 		return
 		
 	var body:String = response_body.get_string_from_utf8()
@@ -257,9 +256,9 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, response_
 		else:
 			response['success']=false
 
-	emit_signal('gamejolt_request_completed',lasttype[0],response)
-	lasttype.pop_front()
-	pass # replace with function body
+	emit_signal('gamejolt_request_completed',last_type,response)
+	
+	busy = false
 
 func _verbose(message):
 	if verbose:
