@@ -21,7 +21,7 @@
 6. You can check [a demo of this plugin](https://github.com/deakcor/godot-gamejolt-api-demo)
 
 **How to use it**
-1. Put the plugin as a Node in your project.
+1. Put the plugin as a Node in your project. For a project which need it in several place, could be intersting to add it in child of an autoload.
 2. Call the function from the plugin. It'll initiate the request.
 3. When response is received plugin will send the signal gamejolt_request_completed with the type of the request and a message
 4. You may connect to this signal or yield. Now, you can also write all your request directly, there is a queue to process all the requests.
