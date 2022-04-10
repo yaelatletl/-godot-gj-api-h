@@ -177,7 +177,7 @@ func remove_data(key, global=true):
 	if global:
 		_call_gj_api('/data-store/remove/', {key = key})
 	else:
-		_call_gj_api('/data-store/remove/', {key = key, username = username_cache, token = token_cache})
+		_call_gj_api('/data-store/remove/', {key = key, username = username_cache, user_token = token_cache})
 	pass
 	
 func get_data_keys(pattern=null, global=true):
